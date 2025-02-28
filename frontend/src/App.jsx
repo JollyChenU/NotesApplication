@@ -48,10 +48,42 @@ function App() {
     fetchNotes();
     
     // 添加全局mouseup事件监听器
-    const handleGlobalMouseUp = () => {
-      if (draggingNoteId) {
-        setDraggingNoteId(null);
+    const handleGlobalMouseUp = async () => {
+      if (draggingNoteId && dropIndicatorIndex !== null) {
+        // 获取当前笔记列表的副本
+        const notesCopy = [...notes];
+        // 找到被拖拽笔记的当前索引
+        const draggedNoteIndex = notesCopy.findIndex(note => note.id === draggingNoteId);
+        // 获取被拖拽的笔记
+        const draggedNote = notesCopy[draggedNoteIndex];
+        
+        // 从原位置删除笔记
+        notesCopy.splice(draggedNoteIndex, 1);
+        // 在目标位置插入笔记
+        notesCopy.splice(dropIndicatorIndex, 0, draggedNote);
+        
+        // 更新本地状态
+        setNotes(notesCopy);
+        
+        try {
+          // 构建新的顺序数据
+          const updatedOrder = notesCopy.map((note, index) => ({
+            id: note.id,
+            position: index
+          }));
+          
+          // 发送请求到后端更新笔记顺序
+          await axios.put(`${API_URL}/notes/reorder`, updatedOrder);
+        } catch (error) {
+          console.error('Error updating notes order:', error);
+          // 如果更新失败，重新获取笔记列表
+          fetchNotes();
+        }
       }
+      
+      // 重置拖拽状态
+      setDraggingNoteId(null);
+      setDropIndicatorIndex(null);
     };
 
     // 添加全局mousemove事件监听器
@@ -67,9 +99,23 @@ function App() {
           const rect = element.getBoundingClientRect();
           const mouseY = e.clientY;
           
-          // 检查鼠标是否在当前笔记的上半部分
-          if (mouseY < rect.top + rect.height / 2) {
+          // 获取编辑区和显示区的位置
+          const editArea = element.querySelector('textarea');
+          const previewArea = element.querySelector('[data-preview-area]');
+          const editRect = editArea.getBoundingClientRect();
+          const previewRect = previewArea.getBoundingClientRect();
+          
+          // 判断鼠标是否在笔记块的上方
+          if (mouseY < editRect.top) {
             if (targetIndex === null) targetIndex = index;
+          }
+          // 判断鼠标是否在编辑区内
+          else if (mouseY >= editRect.top && mouseY <= editRect.bottom) {
+            if (targetIndex === null) targetIndex = index;
+          }
+          // 判断鼠标是否在显示区内
+          else if (mouseY >= previewRect.top && mouseY <= previewRect.bottom) {
+            if (targetIndex === null) targetIndex = index + 1;
           }
         });
         
@@ -206,32 +252,96 @@ function App() {
       <Box sx={{ position: 'relative' }}>
         {/* 拖拽放置位置指示器 */}
         {draggingNoteId && dropIndicatorIndex !== null && (
-          <Box
-            sx={{
-              position: 'absolute',
-              left: '0',
-              right: '0',
-              height: '4px',
-              backgroundColor: '#1976d2',
-              transform: 'translateY(-2px)',
-              zIndex: 1,
-              top: `${dropIndicatorIndex * (100 + 16)}px`, // 100px是笔记的最小高度，16px是笔记间距
-              transition: 'top 0.2s ease-in-out'
-            }}
-          />
+          <>
+            <Box
+              sx={{
+                position: 'fixed',
+                left: '50%',
+                transform: 'translateX(-48.5%)',
+                width: 'calc(100% - 48px)',
+                maxWidth: '1184px',
+                height: '4px',
+                backgroundColor: '#1976d2',
+                zIndex: 2,
+                top: (() => {
+                  // 获取所有笔记容器元素
+                  const noteElements = document.querySelectorAll('[data-note-container]');
+                  const blockInGap = 24;
+                  // 如果指示器位置在第一个笔记之前
+                  if (dropIndicatorIndex === 0) {
+                    const firstElement = noteElements[0];
+                    if (firstElement) {
+                      // 获取第一个笔记的编辑区域，并计算其顶部位置
+                      // 将指示器放置在第一个笔记上方，与笔记保持一定间距
+                      const editArea = firstElement.querySelector('textarea');
+                      const editRect = editArea.getBoundingClientRect();
+                      return `${editRect.top - blockInGap}px`;
+                    }
+                  } 
+                  // 如果指示器位置在最后一个笔记之后
+                  else if (dropIndicatorIndex === noteElements.length) {
+                    const lastElement = noteElements[noteElements.length - 1];
+                    if (lastElement) {
+                      // 获取最后一个笔记的预览区域，并计算其底部位置
+                      // 将指示器放置在最后一个笔记下方，与笔记保持一定间距
+                      const previewArea = lastElement.querySelector('[data-preview-area]');
+                      const previewRect = previewArea.getBoundingClientRect();
+                      return `${previewRect.bottom + blockInGap}px`;
+                    }
+                  } 
+                  // 如果指示器位置在两个笔记之间
+                  else {
+                    const currentElement = noteElements[dropIndicatorIndex];
+                    const previousElement = noteElements[dropIndicatorIndex - 1];
+                    if (currentElement && previousElement) {
+                      // 获取当前笔记和前一个笔记的Paper元素
+                      // 计算两个笔记之间的中点位置，使指示器在视觉上更加平衡
+                      const currentPaper = currentElement.querySelector('.MuiPaper-root');
+                      const previousPaper = previousElement.querySelector('.MuiPaper-root');
+                      // 计算两个笔记之间的中点位置，并微调偏移量使视觉效果更好
+                      const currentRect = currentPaper.getBoundingClientRect();
+                      const previousRect = previousPaper.getBoundingClientRect();
+                      return `${(previousRect.bottom + currentRect.top) / 2 - 2}px`;
+                    }
+                  }
+                  // 如果无法计算位置（例如没有笔记或DOM元素未加载），则默认返回0
+                  return '0px';
+                })()
+              }}
+            />
+          </>
         )}
 
+        {/* 使用map函数遍历所有笔记，为每个笔记创建一个独立的笔记块 */}
         {notes.map((note) => (
           <Box key={note.id} sx={{ position: 'relative' }} data-note-container>
             <Paper
               sx={{
-                p: 2,
-                mb: 2,
-                position: 'relative',
-                width: '100%',
-                background: '#ffffff',
+                p: 2,                    // 内边距
+                mb: 2,                    // 底部外边距
+                position: 'relative',      // 相对定位，用于放置删除按钮
+                width: '100%',            // 宽度占满容器
+                background: (() => {
+                  // 当有笔记正在被拖拽且有放置位置指示器时
+                  if (draggingNoteId && dropIndicatorIndex !== null) {
+                    // 获取所有笔记容器元素
+                    const noteElements = document.querySelectorAll('[data-note-container]');
+                    // 找到当前笔记在所有笔记中的索引位置
+                    const currentIndex = Array.from(noteElements).findIndex(
+                      el => el === document.querySelector(`[data-note-id="${note.id}"]`)?.closest('[data-note-container]')
+                    );
+                    // 如果当前笔记是放置目标位置或其前一个位置，显示浅红色背景
+                    if (currentIndex === dropIndicatorIndex || currentIndex === dropIndicatorIndex - 1) {
+                      return '#ffebee';
+                    }
+                  }
+                  // 默认使用白色背景
+                  return '#ffffff';
+                })(),
+                // 当笔记被拖拽时降低其透明度，提供视觉反馈
                 opacity: draggingNoteId === note.id ? 0.6 : 1,
-                transition: 'opacity 0.2s ease-in-out'
+                // 添加过渡动画效果
+                transition: 'all 0.2s ease-in-out'
               }}
             >
               {/* 笔记拖拽手柄 */}
@@ -288,6 +398,7 @@ function App() {
                 />
                 {/* Markdown预览区域 */}
                 <Box
+                  data-preview-area
                   sx={{
                     borderTop: 1,
                     borderColor: 'divider',
