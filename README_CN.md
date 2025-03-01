@@ -9,11 +9,48 @@
 - 💾 自动保存
 - 🎨 毛坯房的界面
 
+## 更新日志
+
+完整的更新历史请查看：
+
+- CHANGELOG.md (双语)
+- CHANGELOG_CN.md (中文)
+- CHANGELOG_EN.md (英文)
+
+## 如何运行
+
+1. 启动后端服务器：
+```bash
+python app.py
+```
+
+2. 先进入 `frontend` 目录再启动前端应用：
+```bash
+cd frontend
+npm run dev
+```
+
+3. 打开浏览器访问：
+http://localhost:5173
+
 ## 技术栈
 
 ### 前端
 
+- React 18.2.0
+- Material-UI (MUI) 5.13.0
+- React Markdown 8.0.7
+- React Beautiful DnD 13.1.1
+- Axios 1.4.0
+- Vite 4.3.5
+
 ### 后端
+
+- Flask 2.0.1
+- Flask-CORS 3.0.10
+- SQLAlchemy 1.4.23
+- Flask-SQLAlchemy 2.5.1
+- SQLite
 
 ## 安装说明
 
@@ -21,18 +58,31 @@
 
 1. 安装Python依赖：
 ```bash
+pip install -r requirements.txt
+```
+
 2. 运行Flask服务器：
 ```bash
+python app.py
+```
 服务器将在 http://127.0.0.1:5000 启动
 
 ### 前端设置
 
 1. 进入前端目录：
 ```bash
+cd frontend
+```
+
 2. 安装Node.js依赖：
 ```bash
+npm install
+```
+
 3. 启动开发服务器：
 ```bash
+npm run dev
+```
 应用将在 http://localhost:5173 启动
 
 ## 使用说明
@@ -54,16 +104,28 @@
 
 ## 项目结构
 
-├── app.py              # Flask backend application / Flask后端应用
-├── requirements.txt    # Python dependencies / Python依赖
-├── notes.db           # SQLite database / SQLite数据库
-└── frontend/          # React frontend application / React前端应用
-    ├── src/
-    │   ├── App.jsx    # Main application component / 主应用组件
-    │   └── main.jsx   # Application entry / 应用入口
-    ├── package.json   # Node.js dependency configuration / Node.js依赖配置
-    └── index.html     # HTML template / HTML模板
 ```
+Notes/
+├── app.py              # Flask后端应用
+├── requirements.txt    # Python依赖
+├── notes.db           # SQLite数据库
+├── models/            # 数据库模型
+│   ├── note.py        # 笔记模型
+│   └── note_file.py   # 笔记文件模型
+├── routes/            # API路由
+│   ├── notes.py       # 笔记路由
+│   └── files.py       # 文件路由
+└── frontend/          # React前端应用
+    ├── src/
+    │   ├── components/  # React组件
+    │   ├── hooks/       # 自定义钩子
+    │   ├── services/    # API服务
+    │   ├── App.jsx      # 主应用组件
+    │   └── main.jsx     # 应用入口
+    ├── package.json     # Node.js依赖配置
+    └── index.html       # HTML模板
+```
+
 ## 开发计划
 
 - [ ] 添加用户认证系统

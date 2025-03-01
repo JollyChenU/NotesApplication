@@ -7,41 +7,56 @@ A note-taking application in development that supports Markdown editing, real-ti
 - 💾 Auto-save functionality
 - 🎨 Basic interface
 
+## Changelog
+
+For detailed update history, please check:
+
+- CHANGELOG.md (Bilingual)
+- CHANGELOG_CN.md (Chinese)
+- CHANGELOG_EN.md (English)
+
+## Changelog
+For detailed update history, please check:
+## How to Run
+python app.py
+```
+
+cd frontend
+npm run dev
+```
 
 
 ## Technology Stack
 ### Frontend
-- React 18
-- Material-UI (MUI)
-- React Markdown
-- Axios
-- Vite
+- React 18.2.0
+- Material-UI (MUI) 5.13.0
+- React Markdown 8.0.7
+- React Beautiful DnD 13.1.1
+- Axios 1.4.0
+- Vite 4.3.5
 
 ### Backend
-- Flask
-- SQLAlchemy
+- Flask 2.0.1
+- Flask-CORS 3.0.10
+- SQLAlchemy 1.4.23
+- Flask-SQLAlchemy 2.5.1
 - SQLite
 
 ## Installation
 ### Backend Setup
-1. Install Python dependencies:
 pip install -r requirements.txt
 ```
 
-2. Run Flask server:
 python app.py
 ```
 Server will start at http://127.0.0.1:5000
 ### Frontend Setup
-1. Enter frontend directory:
 cd frontend
 ```
 
-2. Install Node.js dependencies:
 npm install
 ```
 
-3. Start development server:
 npm run dev
 ```
 Application will start at http://localhost:5173
@@ -65,7 +80,6 @@ Application will start at http://localhost:5173
 ```
 Notes/
     ├── src/
-```
 
 ## Development Plans
 - [ ] Add user authentication system
