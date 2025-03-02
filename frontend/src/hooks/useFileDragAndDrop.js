@@ -36,18 +36,18 @@ const useFileDragAndDrop = (onOrderUpdate) => {
    * 处理鼠标抬起事件，清除长按计时器
    */
   const handleMouseUp = useCallback(() => {
-    if (pressTimer) {
+    if (pressTimer && !isDragging) {
       console.log('清除长按计时器');
       clearTimeout(pressTimer);
       setPressTimer(null);
     }
-    if (draggingFileId) {
+    if (draggingFileId && !isDragging) {
       console.log('结束拖拽状态');
       setDraggingFileId(null);
       setDropIndicatorIndex(null);
       setIsDragging(false);
     }
-  }, [pressTimer, draggingFileId]);
+  }, [pressTimer, draggingFileId, isDragging]);
   
   /**
    * 处理拖拽结束，更新文件顺序
@@ -115,12 +115,20 @@ const useFileDragAndDrop = (onOrderUpdate) => {
         新的排序: newFiles.map(f => `${f.name}(ID:${f.id})`)
       });
   
-      // 更新后端数据
-      const fileIds = newFiles.map(file => file.id);
-      await noteService.updateFileOrder(fileIds);
-      
-      // 更新前端状态
+      // 先更新前端状态（乐观更新）
       onOrderUpdate(newFiles);
+
+      // 异步更新后端数据
+      const fileIds = newFiles.map(file => file.id);
+      try {
+        await noteService.updateFileOrder(fileIds);
+      } catch (error) {
+        console.error('更新文件顺序失败，正在恢复原始顺序：', error);
+        // 如果后端更新失败，重新获取文件列表以恢复原始顺序
+        const originalFiles = await noteService.getAllFiles();
+        onOrderUpdate(originalFiles);
+        throw error;
+      }
       console.log('✓ 文件顺序更新成功', {
         文件名称: draggedFile.name,
         原始位置: currentIndex,

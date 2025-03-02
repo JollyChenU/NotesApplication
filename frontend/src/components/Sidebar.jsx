@@ -7,7 +7,8 @@ const Sidebar = ({
   files,
   activeFileId,
   onFileSelect,
-  onCreateFile
+  onCreateFile,
+  onOrderUpdate
 }) => {
   const {
     draggingFileId,
@@ -19,6 +20,7 @@ const Sidebar = ({
     handleDragMove
   } = useFileDragAndDrop(updatedFiles => {
     // 通知父组件更新文件列表状态
+    onOrderUpdate(updatedFiles);
     onFileSelect(updatedFiles[0]?.id || null);
   });
   useEffect(() => {

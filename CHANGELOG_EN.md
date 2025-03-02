@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.0.3] - 2025-03-02
+
+### New Features
+- Added note file drag and drop functionality
+  - Implemented long-press to trigger drag operations
+  - Added real-time sorting visual feedback
+  - Optimized performance during dragging
+  - Implemented server-side sorting persistence
+  - Added error handling and rollback mechanism for drag operations
+
 ## [0.0.2] - 2025-03-01
 
 ### New Features

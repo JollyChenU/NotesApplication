@@ -72,7 +72,7 @@ def get_files():
 
     返回所有笔记文件的基本信息，包括ID、名称、创建时间和更新时间。
     """
-    files = NoteFile.query.all()
+    files = NoteFile.query.order_by(NoteFile.order).all()
     return jsonify([
         {
             'id': file.id,

@@ -56,12 +56,14 @@ const noteService = {
   updateFileOrder: async (fileIds) => {
     try {
       await axios.put(`${API_URL}/files/reorder`, { fileIds });
+      // 不再获取最新的文件列表，由前端直接更新UI
+      return { success: true };
     } catch (error) {
       console.error('Error updating file order:', error);
+      // 如果更新失败，返回错误信息，让前端可以处理回滚
       throw error;
     }
   },
-
   // 笔记相关API
   getNotes: async (fileId) => {
     try {
@@ -75,7 +77,7 @@ const noteService = {
 
   createNote: async (fileId) => {
     try {
-      const response = await axios.post(`${API_URL}/files/${fileId}/notes`, { content: '点击此处开始编辑...' });
+      const response = await axios.post(`${API_URL}/files/${fileId}/notes`, { content: '# 点击左边编辑icon开始编辑...' });
       return response.data;
     } catch (error) {
       console.error('Error creating note:', error);

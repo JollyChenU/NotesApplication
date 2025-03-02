@@ -1,5 +1,21 @@
 # Changelog / 更新日志
 
+## [0.0.3] - 2025-03-02
+
+### New Features / 新功能
+- Added note file drag and drop functionality
+  - Implemented long-press to trigger drag operations
+  - Added real-time sorting visual feedback
+  - Optimized performance during dragging
+  - Implemented server-side sorting persistence
+  - Added error handling and rollback mechanism for drag operations
+- 新增笔记文件拖曳功能
+  - 实现长按触发拖曳操作
+  - 添加实时排序视觉反馈
+  - 优化拖曳过程中的性能
+  - 实现服务端排序持久化
+  - 添加拖曳操作的错误处理和回滚机制
+
 ## [0.0.2] - 2025-03-01
 
 ### New Features / 新功能

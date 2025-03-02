@@ -16,6 +16,12 @@ import useDragAndDrop from './hooks/useDragAndDrop';
 function App() {
   const [files, setFiles] = useState([]);
   const [activeFileId, setActiveFileId] = useState(null);
+
+  // 处理文件顺序更新
+  const handleFileOrderUpdate = async (updatedFiles) => {
+    setFiles(updatedFiles);
+    // 不再需要重新获取文件列表，因为noteService.updateFileOrder已实现乐观更新
+  };
   const [notes, setNotes] = useState([]);
   const [activeNoteId, setActiveNoteId] = useState(null);
   const [isEditingFileName, setIsEditingFileName] = useState(false);
@@ -156,6 +162,7 @@ function App() {
         activeFileId={activeFileId}
         onFileSelect={setActiveFileId}
         onCreateFile={createFile}
+        onOrderUpdate={handleFileOrderUpdate}
       />
 
       <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - 240px)` } }}>
