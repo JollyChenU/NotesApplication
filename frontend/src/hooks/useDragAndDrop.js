@@ -71,29 +71,24 @@ const useDragAndDrop = (onOrderUpdate) => {
     const mouseY = e.clientY;
 
     // 优化：使用Array.from和findIndex替代forEach
-    const index = Array.from(noteElements).findIndex(element => {
-      const editArea = element.querySelector('textarea');
-      const previewArea = element.querySelector('[data-preview-area]');
+    const elements = Array.from(noteElements);
+    const index = elements.findIndex(element => {
       const paperElement = element.querySelector('.MuiPaper-root');
-      const paperRect = paperElement.getBoundingClientRect();
-
-      if (mouseY < paperRect.top) return true;
-      if (mouseY >= paperRect.top && mouseY <= paperRect.bottom) {
-        targetIndex = Array.from(noteElements).indexOf(element);
-        return true;
-      }
-      return false;
+      const rect = paperElement.getBoundingClientRect();
+      const elementMiddle = rect.top + (rect.height / 2);
+      // 当鼠标在元素上半部分时，指示器显示在该元素上方
+      // 当鼠标在元素下半部分时，指示器显示在下一个元素上方（即当前元素下方）
+      return mouseY <= elementMiddle;
     });
 
-    if (index !== -1 && targetIndex === null) {
+    if (index === -1) {
+      // 如果鼠标在所有元素的下半部分，将指示器放在最后
+      targetIndex = elements.length;
+    } else {
       targetIndex = index;
     }
     
-    // 如果鼠标在所有笔记下方，则将指示器放在最后
-    if (targetIndex === null && noteElements.length > 0) {
-      targetIndex = noteElements.length;
-    }
-
+    // 只在指示器位置发生变化时更新状态
     if (targetIndex !== dropIndicatorIndex) {
       setDropIndicatorIndex(targetIndex);
     }
