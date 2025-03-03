@@ -28,6 +28,14 @@ For detailed update history, please check:
 - CHANGELOG_CN.md (Chinese / 中文)
 - CHANGELOG_EN.md (English / 英文)
 
+## Deployment Guide
+## 部署指南
+
+For Ubuntu deployment instructions, please check:
+如需了解Ubuntu环境下的部署说明，请查看：
+
+- DEPLOY_UBUNTU.md
+
 ## How to Run
 ## 如何运行
 

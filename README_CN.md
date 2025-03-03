@@ -13,9 +13,14 @@
 
 完整的更新历史请查看：
 
-- CHANGELOG.md (双语)
-- CHANGELOG_CN.md (中文)
-- CHANGELOG_EN.md (英文)
+- CHANGELOG.md (Bilingual / 双语)
+- CHANGELOG_CN.md (Chinese / 中文)
+- CHANGELOG_EN.md (English / 英文)
+
+## 部署指南
+
+如需了解Ubuntu环境下的部署说明，请查看：
+- DEPLOY_UBUNTU.md
 
 ## 如何运行
 

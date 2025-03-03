@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.0.4] - 2025-03-03
+
+### New Features
+- Added Ubuntu deployment documentation
+  - Added DEPLOY_UBUNTU.md file
+  - Detailed EC2 environment configuration steps
+  - Comprehensive project deployment process guide
+  - Optimized external access configuration guide
+  - Added common troubleshooting solutions
+
+### Optimizations
+- Deployment Process Optimization
+  - Simplified environment dependency installation
+  - Optimized project configuration management
+  - Improved service startup scripts
+  - Enhanced security configuration
+
+### Documentation
+- Enhanced Deployment Documentation
+  - Added detailed environment requirements
+  - Optimized configuration step descriptions
+  - Added troubleshooting guide
+  - Added performance optimization suggestions
+
 ## [0.0.3] - 2025-03-02
 
 ### New Features

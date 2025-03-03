@@ -87,6 +87,7 @@ def create_file():
     """创建新的笔记文件
 
     接收文件名称参数，如果文件名已存在，则自动添加数字后缀。
+    新文件会被添加到列表末尾。
     返回新创建的文件信息。
     """
     data = request.get_json()
@@ -99,7 +100,11 @@ def create_file():
         counter += 1
         new_name = f"{base_name}_{counter}"
     
-    new_file = NoteFile(name=new_name)
+    # 获取当前最大的order值
+    max_order = db.session.query(db.func.max(NoteFile.order)).scalar() or 0
+    
+    # 创建新文件，order设置为最大值加1
+    new_file = NoteFile(name=new_name, order=max_order + 1)
     db.session.add(new_file)
     db.session.commit()
     

@@ -15,8 +15,10 @@ For detailed update history, please check:
 - CHANGELOG_CN.md (Chinese)
 - CHANGELOG_EN.md (English)
 
-## Changelog
-For detailed update history, please check:
+## Deployment Guide
+
+For Ubuntu deployment instructions, please check:
+- DEPLOY_UBUNTU.md
 ## How to Run
 python app.py
 ```
