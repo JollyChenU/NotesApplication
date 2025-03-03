@@ -13,7 +13,7 @@ def create_app(config_name='default'):
     # 初始化扩展
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:5173"],
+            "origins": ["http://localhost:5173", "http://localhost:4173", "*"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type"]
         }
@@ -31,4 +31,4 @@ def create_app(config_name='default'):
 
 if __name__ == '__main__':
     app = create_app('development')
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True, port=5000)
