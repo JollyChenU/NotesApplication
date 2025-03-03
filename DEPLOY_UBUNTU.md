@@ -49,7 +49,16 @@ cd frontend
 npm install
 ```
 
-### 4. 构建前端项目
+### 4. 修改配置文件
+修改 `./NotesApplation/frontend/` 目录下的 `.env.development`文件中的后端API地址。
+
+```bash 
+# API地址配置
+VITE_API_URL=http://<EC2 Public IP>:5000/api
+```
+
+
+### 5. 构建前端项目
 ```bash
 npm run build
 ```
