@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 后端API的基础URL
-const API_URL = 'http://127.0.0.1:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000/api';
 
 /**
  * 笔记服务类，封装所有与笔记相关的API请求
