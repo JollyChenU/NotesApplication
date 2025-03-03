@@ -23,7 +23,9 @@ const useFileDragAndDrop = (onOrderUpdate) => {
    * @param {number} fileId - 被按下的文件ID
    */
   const handleMouseDown = useCallback((fileId) => {
+    console.log('开始监听长按事件：', { fileId });
     const timer = setTimeout(() => {
+      console.log('长按计时结束，触发拖拽：', { fileId });
       setDraggingFileId(fileId);
       setIsDragging(true);
     }, 500); // 500ms的长按触发时间
@@ -35,34 +37,53 @@ const useFileDragAndDrop = (onOrderUpdate) => {
    */
   const handleMouseUp = useCallback(() => {
     if (pressTimer) {
+      console.log('清除长按计时器');
       clearTimeout(pressTimer);
       setPressTimer(null);
     }
-    // 只有在没有处于拖拽状态时才重置
-    if (!isDragging) {
+    if (draggingFileId) {
+      console.log('结束拖拽状态');
       setDraggingFileId(null);
       setDropIndicatorIndex(null);
+      setIsDragging(false);
     }
-  }, [pressTimer, draggingFileId, isDragging]);
+  }, [pressTimer, draggingFileId]);
   
   /**
    * 处理拖拽结束，更新文件顺序
    * @param {Array} files - 当前的文件列表
    */
   const handleDragEnd = useCallback(async (files) => {
+    // 如果没有拖拽状态或拖拽指示器，说明不是拖拽操作，直接返回
     if (!draggingFileId || dropIndicatorIndex === null) {
       return;
     }
+  
+    console.log('开始处理拖拽结束事件：', {
+      draggingFileId,
+      dropIndicatorIndex,
+      filesCount: files?.length
+    });
     
-    if (!files || !Array.isArray(files) || files.length === 0) {
+    // 如果缺少必要的拖拽信息，记录日志并重置状态
+    if (!files || dropIndicatorIndex === null) {
+      console.warn('拖拽操作缺少必要信息：', {
+        filesCount: files?.length,
+        dropIndicatorIndex
+      });
       setDraggingFileId(null);
       setDropIndicatorIndex(null);
       setIsDragging(false);
       return;
     }
     
-    const draggedFile = files.find(file => file && typeof file === 'object' && file.id === draggingFileId);
+    // 查找被拖拽的文件
+    const draggedFile = files.find(file => file.id === draggingFileId);
     if (!draggedFile) {
+      console.warn('未找到被拖拽的文件：', {
+        draggingFileId,
+        availableFileIds: files.map(f => f.id)
+      });
       setDraggingFileId(null);
       setDropIndicatorIndex(null);
       setIsDragging(false);
@@ -71,23 +92,32 @@ const useFileDragAndDrop = (onOrderUpdate) => {
     
     try {
       const currentIndex = files.findIndex(file => file.id === draggingFileId);
+      console.log('计算文件位置：', {
+        currentIndex,
+        dropIndicatorIndex,
+        draggedFileName: draggedFile.name
+      });
+  
       const newFiles = [...files];
       newFiles.splice(currentIndex, 1);
       
+      // 计算实际的插入位置
       const insertIndex = dropIndicatorIndex > currentIndex ? dropIndicatorIndex - 1 : dropIndicatorIndex;
       newFiles.splice(insertIndex, 0, draggedFile);
       
-      onOrderUpdate(newFiles);
-
+      console.log('准备更新文件顺序：', {
+        oldIndex: currentIndex,
+        newIndex: insertIndex,
+        newOrder: newFiles.map(f => ({ id: f.id, name: f.name }))
+      });
+  
+      // 更新后端数据
       const fileIds = newFiles.map(file => file.id);
-      try {
-        await noteService.updateFileOrder(fileIds);
-      } catch (error) {
-        console.error('更新文件顺序失败，正在恢复原始顺序：', error);
-        const originalFiles = await noteService.getAllFiles();
-        onOrderUpdate(originalFiles);
-        throw error;
-      }
+      await noteService.updateFileOrder(fileIds);
+      
+      // 更新前端状态
+      onOrderUpdate(newFiles);
+      console.log('文件顺序更新成功');
     } catch (error) {
       console.error('更新文件顺序时发生错误：', {
         error: error.message,
@@ -96,6 +126,7 @@ const useFileDragAndDrop = (onOrderUpdate) => {
       });
       alert('文件排序失败，请重试');
     } finally {
+      // 在所有操作完成后重置状态
       setDraggingFileId(null);
       setDropIndicatorIndex(null);
       setIsDragging(false);
@@ -116,25 +147,41 @@ const useFileDragAndDrop = (onOrderUpdate) => {
     let targetIndex = null;
     const mouseY = e.clientY;
   
+    console.log('处理拖拽移动：', {
+      mousePosition: { x: e.clientX, y: e.clientY },
+      elementsCount: fileElements.length
+    });
+  
     // 优化：使用Array.from和findIndex替代forEach
     const elements = Array.from(fileElements);
     const index = elements.findIndex(element => {
       const rect = element.getBoundingClientRect();
-      const elementMiddle = rect.top + (rect.height / 2);
-      // 当鼠标在元素上半部分时，指示器显示在该元素上方
-      // 当鼠标在元素下半部分时，指示器显示在下一个元素上方（即当前元素下方）
-      return mouseY <= elementMiddle;
+      const elementMiddle = (rect.top + rect.bottom) / 2;
+      
+      if (mouseY < elementMiddle) {
+        targetIndex = elements.indexOf(element);
+        return true;
+      }
+      return false;
     });
   
     if (index === -1) {
-      // 如果鼠标在所有元素的下半部分，将指示器放在最后
+      // 如果鼠标在所有元素的中点下方，将指示器放在最后
       targetIndex = elements.length;
-    } else {
+    } else if (targetIndex === null) {
       targetIndex = index;
     }
     
-    // 只在指示器位置发生变化时更新状态
+    // 如果鼠标在所有文件下方，则将指示器放在最后
+    if (targetIndex === null && fileElements.length > 0) {
+      targetIndex = fileElements.length;
+    }
+  
     if (targetIndex !== dropIndicatorIndex) {
+      console.log('更新拖拽指示器位置：', {
+        oldIndex: dropIndicatorIndex,
+        newIndex: targetIndex
+      });
       setDropIndicatorIndex(targetIndex);
     }
   }, [draggingFileId, dropIndicatorIndex]);
