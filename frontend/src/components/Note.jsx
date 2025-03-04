@@ -22,7 +22,8 @@ const Note = ({
       elevation={isActive ? 3 : 1}
       sx={{
         position: 'relative',
-        mb: 2,
+        // mb: 2,
+        mb: { xs: 1, sm: 2 }, //updated
         opacity: isDragging ? 0.5 : 1,
         transition: 'all 0.2s',
         '&:hover': {
@@ -40,10 +41,11 @@ const Note = ({
         sx={{
           display: 'flex',
           alignItems: 'flex-start',
-          p: 2
+          // p: 2
+          p: { xs: 1, sm: 1.5, md: 2 } //updated
         }}
       >
-        <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+        <Box sx={{ display: 'flex', gap: 0.75, mr: {xs:1, sm:2}}}>//gap used to 1
           <IconButton
             sx={{ cursor: 'move' }}
             onMouseDown={(e) => {
@@ -75,7 +77,7 @@ const Note = ({
           ) : (
             <div
               dangerouslySetInnerHTML={{ __html: note.content || '空白笔记' }}
-              style={{ minHeight: '1.5em' }}
+              style={{ minHeight: '1.5rem' }}//used to 1.5em
             />
           )}
         </Box>

@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Drawer, List, ListItem, ListItemText, IconButton, Paper } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import MenuIcon from '@mui/icons-material/Menu'; // Import menu icon
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'; // Import collapse icon
 import useFileDragAndDrop from '../hooks/useFileDragAndDrop';
 
 const Sidebar = ({
@@ -10,6 +12,11 @@ const Sidebar = ({
   onCreateFile,
   onOrderUpdate
 }) => {
+  const [open, setOpen] = useState(true); // Add state for sidebar open/close
+  const toggleSidebar = () => {
+    setOpen(!open);
+  };
+
   const {
     draggingFileId,
     mousePosition,
@@ -41,17 +48,27 @@ const Sidebar = ({
     <Drawer
       variant="permanent"
       sx={{
-        width: 240,
+        width: open ? 240 : 60, // Set width to 60 when sidebar is closed
         flexShrink: 0,
+        transition: 'width 0.3s ease',
         '& .MuiDrawer-paper': {
-          width: 240,
+          width: open ? 240 : 60,
           boxSizing: 'border-box',
           backgroundColor: '#f5f5f5',
-          borderRight: '1px solid rgba(0, 0, 0, 0.12)'
+          borderRight: '1px solid rgba(0, 0, 0, 0.12)',
+          transition: 'width 0.3s ease',
+          overflow: open ? 'auto' : 'hidden'
         }
       }}
     >
       <Box sx={{ overflow: 'auto', pt: 8, position: 'relative' }}>
+        {/* Toggle Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+          <IconButton onClick={toggleSidebar}>
+            {open ? <ChevronLeftIcon /> : <MenuIcon />}
+          </IconButton>
+        </Box>
+        
         {/* 拖拽时的阴影文件块 */}
         {draggingFileId && (
           <Box
@@ -61,7 +78,8 @@ const Sidebar = ({
               top: mousePosition.y - 20,
               zIndex: 1000,
               pointerEvents: 'none',
-              width: '200px'
+              width: '200px',
+              display: open ? 'block' : 'none'
             }}
           >
             <Paper
@@ -78,7 +96,7 @@ const Sidebar = ({
         )}
 
         {/* 拖拽放置位置指示器 */}
-        {draggingFileId && dropIndicatorIndex !== null && (
+        {open && draggingFileId && dropIndicatorIndex !== null && (
           <Box
             sx={{
               position: 'absolute',
@@ -147,15 +165,21 @@ const Sidebar = ({
                 }
               }}
             >
-              <ListItemText
-                primary={file.name}
-                primaryTypographyProps={{
-                  noWrap: true,
-                  style: {
-                    fontWeight: activeFileId === file.id ? 600 : 400
-                  }
-                }}
-              />
+              {open ? (
+                <ListItemText
+                  primary={file.name}
+                  primaryTypographyProps={{
+                    noWrap: true,
+                    style: {
+                      fontWeight: activeFileId === file.id ? 600 : 400
+                    }
+                  }}
+                />
+              ) : (
+                <Box sx={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {file.name[0]?.toUpperCase()}
+                </Box>
+              )}
             </ListItem>
           ))}
         </List>
