@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, IconButton } from '@mui/material';
+import { Box, Paper, IconButton, Menu, MenuItem } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import NoteDragHandle from '@mui/icons-material/DragIndicator';
 import EditIcon from '@mui/icons-material/Edit';
@@ -17,26 +17,86 @@ const NoteList = ({
   onFocus,
   onBlur
 }) => {
-  // 添加编辑状态管理
   const [editingNotes, setEditingNotes] = React.useState(new Set());
-
-  // 切换笔记的编辑状态
-  const toggleNoteEditing = (noteId) => {
-    setEditingNotes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(noteId)) {
-        newSet.delete(noteId);
-      } else {
-        newSet.add(noteId);
-      }
-      return newSet;
-    });
+  const [pressTimer, setPressTimer] = React.useState(null);
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState(null);
+  const [selectedNoteId, setSelectedNoteId] = React.useState(null);
+  const [subMenuAnchorEl, setSubMenuAnchorEl] = React.useState(null);
+  const handleMenuOpen = (event, noteId) => {
+    event.preventDefault();
+    setMenuAnchorEl(event.currentTarget);
+    setSelectedNoteId(noteId);
   };
-
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+    setSelectedNoteId(null);
+  };
+  const handleSubMenuOpen = (event) => {
+    setSubMenuAnchorEl(event.currentTarget);
+  };
+  const handleSubMenuClose = () => {
+    setSubMenuAnchorEl(null);
+  };
+  const handleMenuItemClick = (action, format) => {
+    switch (action) {
+      case 'copy':
+        const note = notes.find(n => n.id === selectedNoteId);
+        if (note) {
+          navigator.clipboard.writeText(note.content);
+        }
+        break;
+      case 'duplicate':
+        const originalNote = notes.find(n => n.id === selectedNoteId);
+        if (originalNote) {
+          onUpdate({
+            id: Date.now(),
+            content: originalNote.content,
+            position: notes.length
+          });
+        }
+        break;
+      case 'format':
+        const targetNote = notes.find(n => n.id === selectedNoteId);
+        if (targetNote) {
+          let newContent = targetNote.content;
+          switch (format) {
+            case 'h1':
+              newContent = `# ${targetNote.content}`;
+              break;
+            case 'h2':
+              newContent = `## ${targetNote.content}`;
+              break;
+            case 'h3':
+              newContent = `### ${targetNote.content}`;
+              break;
+            case 'bullet':
+              newContent = `- ${targetNote.content}`;
+              break;
+            case 'number':
+              newContent = `1. ${targetNote.content}`;
+              break;
+            case 'quote':
+              newContent = `> ${targetNote.content}`;
+              break;
+            case 'highlight':
+              newContent = `==${targetNote.content}==`;
+              break;
+            default:
+              break;
+          }
+          onUpdate({ ...targetNote, content: newContent });
+        }
+        break;
+      default:
+        break;
+    }
+    handleMenuClose();
+    handleSubMenuClose();
+  };
   return (
     <Box sx={{ position: 'relative' }}>
       {/* 拖拽时的阴影笔记块 */}
-      {draggingNoteId && (
+      {draggingNoteId && mousePosition.x !== 0 && mousePosition.y !== 0 && (
         <Box
           sx={{
             position: 'fixed',
@@ -140,23 +200,13 @@ const NoteList = ({
             <Box
               sx={{
                 position: 'absolute',
-                left: -80,
+                left: -40,
                 top: 0,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1
               }}
             >
-              {/* 编辑按钮 */}
-              <IconButton
-                onClick={() => toggleNoteEditing(note.id)}
-                sx={{
-                  padding: '4px',
-                  color: editingNotes.has(note.id) ? '#1976d2' : '#666'
-                }}
-              >
-                <EditIcon />
-              </IconButton>
               {/* 拖拽手柄 */}
               <Box
                 sx={{
@@ -168,12 +218,30 @@ const NoteList = ({
                   color: '#666',
                   '&:active': {
                     cursor: 'grabbing',
-                    color: '#333',
-                    backgroundColor: '#f5f5f5',
-                    boxShadow: '0 0 5px rgba(0,0,0,0.1)'
+                    color: '#333'
                   }
                 }}
-                onMouseDown={() => onDragStart(note.id)}
+                onClick={(e) => handleMenuOpen(e, note.id)}
+                onMouseDown={() => {
+                  const timer = setTimeout(() => {
+                    onDragStart(note.id);
+                  }, 250);
+                  setPressTimer(timer);
+                }}
+                onMouseUp={() => {
+                  // 清除定时器
+                  if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    setPressTimer(null);
+                  }
+                }}
+                onMouseLeave={() => {
+                  // 鼠标离开时也清除定时器
+                  if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    setPressTimer(null);
+                  }
+                }}
               >
                 <NoteDragHandle />
               </Box>
@@ -197,6 +265,60 @@ const NoteList = ({
           </Paper>
         </Box>
       ))}
+
+      {/* 添加菜单组件 */}
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={Boolean(menuAnchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={() => handleMenuItemClick('copy')}>复制</MenuItem>
+        <MenuItem onClick={() => handleMenuItemClick('duplicate')}>创建副本</MenuItem>
+        <MenuItem
+          onClick={handleSubMenuOpen}
+          sx={{
+            '& .MuiMenu-paper': {
+              marginLeft: '2px'
+            }
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%'
+            }}
+          >
+            转换为
+            <Box component="span" sx={{ marginLeft: 'auto' }}>
+              ▶
+            </Box>
+          </Box>
+        </MenuItem>
+      </Menu>
+      <Menu
+        anchorEl={subMenuAnchorEl}
+        open={Boolean(subMenuAnchorEl)}
+        onClose={handleSubMenuClose}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'right'
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left'
+        }}
+      >
+        <MenuItem onClick={() => handleMenuItemClick('format', 'text')}>文本</MenuItem>
+        <MenuItem onClick={() => handleMenuItemClick('format', 'h1')}>一级标题</MenuItem>
+        <MenuItem onClick={() => handleMenuItemClick('format', 'h2')}>二级标题</MenuItem>
+        <MenuItem onClick={() => handleMenuItemClick('format', 'h3')}>三级标题</MenuItem>
+        <MenuItem onClick={() => handleMenuItemClick('format', 'bullet')}>无序列表</MenuItem>
+        <MenuItem onClick={() => handleMenuItemClick('format', 'number')}>有序列表</MenuItem>
+        <MenuItem onClick={() => handleMenuItemClick('format', 'quote')}>引用</MenuItem>
+        <MenuItem onClick={() => handleMenuItemClick('format', 'highlight')}>标注</MenuItem>
+      </Menu>
     </Box>
   );
 };
