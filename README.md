@@ -173,6 +173,21 @@ Notes/
 ## Development Plans
 ## 开发计划
 
+### Optimizations
+### 优化功能
+
+- [ ] Optimize adaptive width display of note blocks in the page
+- [ ] Add Ctrl+Enter shortcut in edit mode to save and exit (same as clicking edit icon)
+
+
+- [ ] 优化笔记块在页面内的自适应宽度显示
+- [ ] 优化编辑功能，支持编辑栏位置按下Ctrl+Enter保存并退出
+
+
+### New Features
+### 新增功能
+
+- [ ] Add note folder creation functionality in the left sidebar
 - [ ] Add user authentication system
 - [ ] Support note tags and categories
 - [ ] Add note search functionality
@@ -180,12 +195,14 @@ Notes/
 - [ ] Add note sharing functionality
 - [ ] Support dark mode
 
+- [ ] 新增左侧建立笔记文件夹功能
 - [ ] 添加用户认证系统
 - [ ] 支持笔记标签和分类
 - [ ] 添加笔记搜索功能
 - [ ] 支持图片上传
 - [ ] 添加笔记分享功能
 - [ ] 支持深色模式
+
 
 ## Contribution Guide
 ## 贡献指南

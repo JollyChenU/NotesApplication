@@ -49,16 +49,7 @@ cd frontend
 npm install
 ```
 
-### 4. 修改配置文件
-修改 `./NotesApplation/frontend/` 目录下的 `.env.development`文件中的后端API地址。
-
-```bash 
-# API地址配置
-VITE_API_URL=http://<EC2 Public IP>:5000/api
-```
-
-
-### 5. 构建前端项目
+### 4. 构建前端项目
 ```bash
 npm run build
 ```
@@ -119,10 +110,24 @@ npm run dev
    - 端口范围：4173（前端开发服务器，使用npm run dev时）
    - 来源：0.0.0.0/0（或限制特定IP范围）
 
+## 环境变量配置
+
+### 1. 获取EC2实例IP
+```bash
+# 获取EC2实例的公网IPv4地址
+EC2_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
+# 设置API_URL环境变量
+export API_URL=http://$EC2_IP:5000
+```
+
 ## 访问应用
 
-- 后端API：`http://<EC2公网IP>:5000`
-- 前端应用：`http://<EC2公网IP>:4173`
+在设置好环境变量后：
+- 后端API将在：`http://$EC2_IP:5000`
+- 前端应用将在：`http://$EC2_IP:4173`
+
+注意：每次EC2实例重启后，需要重新获取IP地址并更新环境变量。建议将环境变量配置命令添加到启动脚本中。
 
 ## 注意事项
 
