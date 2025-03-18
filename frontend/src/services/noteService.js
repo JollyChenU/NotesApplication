@@ -77,7 +77,7 @@ const noteService = {
 
   createNote: async (fileId) => {
     try {
-      const response = await axios.post(`${API_URL}/files/${fileId}/notes`, { content: '# 点击左边编辑icon开始编辑...' });
+      const response = await axios.post(`${API_URL}/files/${fileId}/notes`, { content: '' });
       return response.data;
     } catch (error) {
       console.error('Error creating note:', error);
@@ -85,9 +85,9 @@ const noteService = {
     }
   },
 
-  updateNote: async (noteId, content) => {
+  updateNote: async (noteId, noteData) => {
     try {
-      const response = await axios.put(`${API_URL}/notes/${noteId}`, { content });
+      const response = await axios.put(`${API_URL}/notes/${noteId}`, noteData);
       return response.data;
     } catch (error) {
       console.error('Error updating note:', error);

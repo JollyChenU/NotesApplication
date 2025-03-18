@@ -23,6 +23,7 @@ class Note(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)  # 笔记的唯一标识符
     content = db.Column(db.Text, nullable=False)  # 笔记内容
+    format = db.Column(db.String(20), default='text')  # 笔记的格式（text, h1, h2, h3, bullet, number, quote, highlight）
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 创建时间
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # 更新时间
     order = db.Column(db.Integer, default=0)  # 笔记在文件中的显示顺序

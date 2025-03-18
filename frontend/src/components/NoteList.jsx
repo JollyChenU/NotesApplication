@@ -1,8 +1,8 @@
 import React from 'react';
 import { Box, Paper, IconButton, Menu, MenuItem } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
 import NoteDragHandle from '@mui/icons-material/DragIndicator';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import NoteEditor from './NoteEditor';
 
 const NoteList = ({
@@ -17,6 +17,19 @@ const NoteList = ({
   onFocus,
   onBlur
 }) => {
+  const handleCreateNewNote = (currentNoteId, newNoteData) => {
+    const currentIndex = notes.findIndex(note => note.id === currentNoteId);
+    if (currentIndex === -1) return;
+    
+    const newNote = {
+      id: Date.now(),
+      content: newNoteData.content || '',
+      format: newNoteData.format || 'text',
+      position: currentIndex + 1
+    };
+    
+    onUpdate(newNote);
+  };
   const [editingNotes, setEditingNotes] = React.useState(new Set());
   const [pressTimer, setPressTimer] = React.useState(null);
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null);
@@ -39,6 +52,9 @@ const NoteList = ({
   };
   const handleMenuItemClick = (action, format) => {
     switch (action) {
+      case 'delete':
+        onDelete(selectedNoteId);
+        break;
       case 'copy':
         const note = notes.find(n => n.id === selectedNoteId);
         if (note) {
@@ -51,6 +67,7 @@ const NoteList = ({
           onUpdate({
             id: Date.now(),
             content: originalNote.content,
+            format: originalNote.format || 'text',
             position: notes.length
           });
         }
@@ -58,33 +75,10 @@ const NoteList = ({
       case 'format':
         const targetNote = notes.find(n => n.id === selectedNoteId);
         if (targetNote) {
-          let newContent = targetNote.content;
-          switch (format) {
-            case 'h1':
-              newContent = `# ${targetNote.content}`;
-              break;
-            case 'h2':
-              newContent = `## ${targetNote.content}`;
-              break;
-            case 'h3':
-              newContent = `### ${targetNote.content}`;
-              break;
-            case 'bullet':
-              newContent = `- ${targetNote.content}`;
-              break;
-            case 'number':
-              newContent = `1. ${targetNote.content}`;
-              break;
-            case 'quote':
-              newContent = `> ${targetNote.content}`;
-              break;
-            case 'highlight':
-              newContent = `==${targetNote.content}==`;
-              break;
-            default:
-              break;
-          }
-          onUpdate({ ...targetNote, content: newContent });
+          onUpdate(selectedNoteId, {
+            content: targetNote.content,
+            format: format
+          });
         }
         break;
       default:
@@ -261,6 +255,7 @@ const NoteList = ({
               onFocus={onFocus}
               onBlur={onBlur}
               isEditing={editingNotes.has(note.id)}
+              onCreateNewNote={handleCreateNewNote}
             />
           </Paper>
         </Box>
@@ -272,6 +267,7 @@ const NoteList = ({
         open={Boolean(menuAnchorEl)}
         onClose={handleMenuClose}
       >
+        <MenuItem onClick={() => handleMenuItemClick('delete')}>删除</MenuItem>
         <MenuItem onClick={() => handleMenuItemClick('copy')}>复制</MenuItem>
         <MenuItem onClick={() => handleMenuItemClick('duplicate')}>创建副本</MenuItem>
         <MenuItem

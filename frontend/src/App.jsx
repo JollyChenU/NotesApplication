@@ -14,20 +14,35 @@ import Sidebar from './components/Sidebar';
 import useDragAndDrop from './hooks/useDragAndDrop';
 
 function App() {
-  const [files, setFiles] = useState([]);
-  const [activeFileId, setActiveFileId] = useState(null);
+  // 文件相关状态
+  const [files, setFiles] = useState([]); // 所有笔记文件列表
+  const [activeFileId, setActiveFileId] = useState(null); // 当前激活的文件ID
 
-  // 处理文件顺序更新
+  // 笔记相关状态
+  const [notes, setNotes] = useState([]); // 当前文件的笔记列表
+  const [activeNoteId, setActiveNoteId] = useState(null); // 当前激活的笔记ID
+  
+  // 文件名编辑状态
+  const [isEditingFileName, setIsEditingFileName] = useState(false); // 是否正在编辑文件名
+  const [editingFileName, setEditingFileName] = useState(''); // 编辑中的文件名
+  
+  // 删除确认对话框状态
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // 拖拽相关状态和处理函数
+  const { draggingNoteId, mousePosition, dropIndicatorIndex, handleDragStart, handleDragEnd, handleDragMove } = useDragAndDrop(setNotes);
+
+  /**
+   * 处理文件顺序更新
+   * @param {Array} updatedFiles - 更新后的文件列表
+   */
   const handleFileOrderUpdate = async (updatedFiles) => {
     setFiles(updatedFiles);
-    // 不再需要重新获取文件列表，因为noteService.updateFileOrder已实现乐观更新
   };
-  const [notes, setNotes] = useState([]);
-  const [activeNoteId, setActiveNoteId] = useState(null);
-  const [isEditingFileName, setIsEditingFileName] = useState(false);
-  const [editingFileName, setEditingFileName] = useState('');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const { draggingNoteId, mousePosition, dropIndicatorIndex, handleDragStart, handleDragEnd, handleDragMove } = useDragAndDrop(setNotes);
+
+  /**
+   * 处理文件名点击事件，进入编辑模式
+   */
   const handleFileNameClick = () => {
     const currentFile = files.find(f => f.id === activeFileId);
     if (currentFile) {
@@ -35,6 +50,10 @@ function App() {
       setIsEditingFileName(true);
     }
   };
+
+  /**
+   * 处理文件名更新
+   */
   const handleFileNameChange = async () => {
     if (!activeFileId || !editingFileName.trim()) return;
     try {
@@ -47,6 +66,11 @@ function App() {
       console.error('Error updating file name:', error);
     }
   };
+
+  /**
+   * 处理文件名编辑时的键盘事件
+   * @param {KeyboardEvent} e - 键盘事件对象
+   */
   const handleFileNameKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleFileNameChange();
@@ -55,6 +79,10 @@ function App() {
       setEditingFileName(files.find(f => f.id === activeFileId)?.name || '');
     }
   };
+
+  /**
+   * 处理文件删除
+   */
   const handleDeleteFile = async () => {
     if (!activeFileId) return;
     try {
@@ -66,6 +94,8 @@ function App() {
       console.error('Error deleting file:', error);
     }
   };
+
+  // 初始化和清理副作用
   useEffect(() => {
     fetchFiles();
 
@@ -79,6 +109,7 @@ function App() {
     };
   }, [handleDragMove, handleDragEnd]);
 
+  // 监听活动文件变化，加载对应的笔记
   useEffect(() => {
     if (activeFileId) {
       fetchNotes(activeFileId);
@@ -87,6 +118,9 @@ function App() {
     }
   }, [activeFileId]);
 
+  /**
+   * 获取所有文件列表
+   */
   const fetchFiles = async () => {
     try {
       const data = await noteService.getAllFiles();
@@ -99,6 +133,9 @@ function App() {
     }
   };
 
+  /**
+   * 创建新文件
+   */
   const createFile = async () => {
     try {
       await noteService.createFile();
@@ -108,6 +145,10 @@ function App() {
     }
   };
 
+  /**
+   * 获取指定文件的笔记列表
+   * @param {string} fileId - 文件ID
+   */
   const fetchNotes = async (fileId) => {
     try {
       const data = await noteService.getNotes(fileId);
@@ -117,6 +158,9 @@ function App() {
     }
   };
 
+  /**
+   * 创建新笔记
+   */
   const createNote = async () => {
     if (!activeFileId) return;
     try {
@@ -127,17 +171,42 @@ function App() {
     }
   };
 
-  const updateNote = async (id, content) => {
+  /**
+   * 更新笔记内容
+   * @param {string} id - 笔记ID
+   * @param {string} content - 笔记内容
+   */
+  const updateNote = async (id, content, format) => {
+    const originalNotes = [...notes];
     try {
-      setNotes(notes.map(note => 
-        note.id === id ? { ...note, content } : note
+      const updatedNote = { ...notes.find(note => note.id === id) };
+      if (typeof content === 'object' && content !== null) {
+        if ('content' in content) updatedNote.content = content.content;
+        if ('format' in content) updatedNote.format = content.format;
+      } else if (typeof content === 'string') {
+        updatedNote.content = content;
+        if (format) updatedNote.format = format;
+      }
+      
+      setNotes(notes.map(note =>
+        note.id === id ? updatedNote : note
       ));
-      await noteService.updateNote(id, content);
+      
+      await noteService.updateNote(id, updatedNote);
     } catch (error) {
       console.error('Error updating note:', error);
+      setNotes(originalNotes);
+      if (activeFileId) {
+        fetchNotes(activeFileId);
+      }
+      throw error;
     }
   };
 
+  /**
+   * 删除笔记
+   * @param {string} id - 笔记ID
+   */
   const deleteNote = async (id) => {
     try {
       await noteService.deleteNote(id);
@@ -146,6 +215,11 @@ function App() {
       console.error('Error deleting note:', error);
     }
   };
+
+  /**
+   * 滚动到指定笔记
+   * @param {string} noteId - 笔记ID
+   */
   const scrollToNote = (noteId) => {
     const noteElement = document.querySelector(`[data-note-id="${noteId}"]`);
     if (noteElement) {
@@ -157,6 +231,7 @@ function App() {
 
   return (
     <Box sx={{ display: 'flex' }}>
+      {/* 侧边栏组件 */}
       <Sidebar
         files={files}
         activeFileId={activeFileId}
@@ -165,8 +240,10 @@ function App() {
         onOrderUpdate={handleFileOrderUpdate}
       />
 
+      {/* 主要内容区域 */}
       <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - 240px)` } }}>
         <Container maxWidth="lg" sx={{ py: 4 }}>
+          {/* 顶部操作栏 */}
           <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {isEditingFileName ? (
@@ -204,6 +281,7 @@ function App() {
             </IconButton>
           </Box>
 
+          {/* 笔记列表组件 */}
           <NoteList
             notes={notes}
             draggingNoteId={draggingNoteId}
@@ -217,6 +295,7 @@ function App() {
             onBlur={() => setActiveNoteId(null)}
           />
 
+          {/* 删除确认对话框 */}
           <Dialog
             open={deleteDialogOpen}
             onClose={() => setDeleteDialogOpen(false)}

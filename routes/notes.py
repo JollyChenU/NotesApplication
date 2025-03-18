@@ -14,6 +14,7 @@ def get_notes(file_id):
         {
             'id': note.id,
             'content': note.content,
+            'format': note.format,
             'created_at': note.created_at.isoformat(),
             'updated_at': note.updated_at.isoformat(),
             'order': note.order
@@ -32,6 +33,7 @@ def create_note(file_id):
     max_order = db.session.query(db.func.max(Note.order)).filter(Note.file_id == file_id).scalar() or 0
     new_note = Note(
         content=data['content'],
+        format=data.get('format', 'text'),  # 设置格式，默认为text
         order=max_order + 1,
         file_id=file_id
     )
@@ -50,6 +52,7 @@ def get_note(note_id):
     return jsonify({
         'id': note.id,
         'content': note.content,
+        'format': note.format,
         'created_at': note.created_at.isoformat(),
         'updated_at': note.updated_at.isoformat()
     })
@@ -60,10 +63,38 @@ def update_note(note_id):
 
     根据笔记ID更新笔记的内容和排序值（如果提供）。
     如果笔记不存在，返回404错误。
+    如果请求数据无效，返回400错误。
     """
     note = Note.query.get_or_404(note_id)
     data = request.get_json()
+    
+    if not data:
+        return jsonify({
+            'error': 'Invalid request',
+            'message': 'No data provided'
+        }), 400
+    
+    if 'content' not in data:
+        return jsonify({
+            'error': 'Invalid request',
+            'message': 'Content field is required'
+        }), 400
+    
+    if 'format' in data and not isinstance(data['format'], str):
+        return jsonify({
+            'error': 'Invalid request',
+            'message': 'Format field must be a string'
+        }), 400
+    
+    if 'order' in data and not isinstance(data['order'], (int, float)):
+        return jsonify({
+            'error': 'Invalid request',
+            'message': 'Order field must be a number'
+        }), 400
+        
     note.content = data['content']
+    if 'format' in data:
+        note.format = data['format']
     if 'order' in data:
         note.order = data['order']
     db.session.commit()
