@@ -25,16 +25,33 @@ def get_notes(file_id):
 def create_note(file_id):
     """创建新笔记
 
-    在指定文件下创建新的笔记。新笔记的排序值会被设置为当前最大排序值加1，
-    确保新笔记总是添加到列表末尾。
+    在指定文件下创建新的笔记。如果提供了after_note_id参数，新笔记将被插入到该笔记之后；
+    否则，新笔记将被添加到列表末尾。
     """
     data = request.get_json()
-    # 获取当前文件中最大的order值
-    max_order = db.session.query(db.func.max(Note.order)).filter(Note.file_id == file_id).scalar() or 0
+    after_note_id = data.get('after_note_id')
+    
+    if after_note_id:
+        # 获取目标笔记的order值
+        target_note = Note.query.get(after_note_id)
+        if target_note and target_note.file_id == file_id:
+            # 将目标笔记之后的所有笔记的order值加1
+            Note.query.filter(Note.file_id == file_id, Note.order > target_note.order).update(
+                {Note.order: Note.order + 1},
+                synchronize_session=False
+            )
+            new_order = target_note.order + 1
+        else:
+            # 如果目标笔记不存在或不属于当前文件，添加到末尾
+            new_order = (db.session.query(db.func.max(Note.order)).filter(Note.file_id == file_id).scalar() or 0) + 1
+    else:
+        # 没有指定after_note_id时，添加到末尾
+        new_order = (db.session.query(db.func.max(Note.order)).filter(Note.file_id == file_id).scalar() or 0) + 1
+    
     new_note = Note(
-        content=data['content'],
-        format=data.get('format', 'text'),  # 设置格式，默认为text
-        order=max_order + 1,
+        content=data.get('content', ''),
+        format=data.get('format', 'text'),
+        order=new_order,
         file_id=file_id
     )
     db.session.add(new_note)

@@ -22,6 +22,15 @@ const NoteEditor = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
 
+  // 确保onCreateNewNote是一个函数
+  const handleCreateNewNote = (noteId, data) => {
+    if (typeof onCreateNewNote === 'function') {
+      onCreateNewNote(noteId, data);
+    } else {
+      console.error('onCreateNewNote is not a function');
+    }
+  };
+
   const handleDragStart = (e) => {
     if (isDragging) {
       e.dataTransfer.setData('text/plain', note.id);
@@ -114,7 +123,7 @@ const NoteEditor = ({
         component="div"
         sx={{
           position: 'relative',
-          width: '100%',
+          width: '95%',
           overflow: 'hidden',
           '& textarea': {
             ...getMarkdownStyles(),
@@ -150,6 +159,29 @@ const NoteEditor = ({
             if (e.key === 'Enter') {
               if (e.shiftKey) {
                 // Shift+Enter 实现换行
+                e.preventDefault();
+                
+                // 获取光标位置和内容
+                const cursorPosition = e.target.selectionStart;
+                const currentContent = note.content;
+                const contentBeforeCursor = currentContent.substring(0, cursorPosition);
+                const contentAfterCursor = currentContent.substring(cursorPosition);
+                
+                // 在光标位置插入换行符
+                const newContent = contentBeforeCursor + '\n' + contentAfterCursor;
+                
+                // 更新笔记内容
+                onUpdate(note.id, {
+                  content: newContent,
+                  format: note.format
+                });
+                
+                // 手动设置新的光标位置（在换行符之后）
+                setTimeout(() => {
+                  e.target.selectionStart = cursorPosition + 1;
+                  e.target.selectionEnd = cursorPosition + 1;
+                }, 0);
+                
                 return;
               }
               // 阻止默认的回车换行行为
@@ -160,25 +192,24 @@ const NoteEditor = ({
               const currentContent = note.content;
               const contentBeforeCursor = currentContent.substring(0, cursorPosition);
               const contentAfterCursor = currentContent.substring(cursorPosition);
-              // 更新当前笔记块的内容
-              // 更新当前笔记内容
+              
+              // 先更新当前笔记内容为光标前的内容
               onUpdate(note.id, {
                 content: contentBeforeCursor,
+                format: note.format
               });
               
-              // 创建新的笔记块，并将光标后的内容移入新笔记块
-              // 确保在更新当前笔记块后再创建新笔记块
-              try {
-                setTimeout(() => {
-                  // 创建新笔记，并将光标后的内容作为新笔记的内容
-                  onCreateNewNote(note.id, {
-                    content: contentAfterCursor,
-                    format: note.format
-                  }, 0);
-                }, 0);
-              } catch (error) {
-                console.error('创建新笔记时出错:', error);
-              }
+              // 立即更新textarea的显示内容和note的content
+              e.target.value = contentBeforeCursor;
+              note.content = contentBeforeCursor;
+              
+              // 延迟创建新笔记，确保当前笔记更新完成
+              setTimeout(() => {
+                handleCreateNewNote(note.id, {
+                  content: contentAfterCursor,
+                  format: note.format
+                });
+              }, 200); // 增加延迟时间，确保前一个操作完成
             }
           }}
           onFocus={() => onFocus(note.id)}

@@ -173,10 +173,33 @@ function App() {
 
   /**
    * 更新笔记内容
-   * @param {string} id - 笔记ID
-   * @param {string} content - 笔记内容
+   * @param {string|object} id - 笔记ID或新笔记对象
+   * @param {object} content - 笔记内容
    */
   const updateNote = async (id, content, format) => {
+    // 处理新笔记创建请求
+    if (typeof id === 'object' && id !== null && id.isNew) {
+      if (!activeFileId && !id.fileId) return;
+      try {
+        // 创建新笔记，传递afterNoteId参数确保新笔记创建在当前笔记之后
+        const response = await noteService.createNote(id.fileId || activeFileId, id.afterNoteId);
+        // 获取新创建的笔记ID
+        const newNoteId = response.id;
+        // 更新新笔记的内容和格式
+        await noteService.updateNote(newNoteId, {
+          content: id.content || '',
+          format: id.format || 'text'
+        });
+        // 重新获取笔记列表以更新UI
+        fetchNotes(id.fileId || activeFileId);
+        return;
+      } catch (error) {
+        console.error('Error creating new note:', error);
+        throw error;
+      }
+    }
+
+    // 处理常规笔记更新
     const originalNotes = [...notes];
     try {
       const updatedNote = { ...notes.find(note => note.id === id) };
@@ -288,6 +311,7 @@ function App() {
             dropIndicatorIndex={dropIndicatorIndex}
             mousePosition={mousePosition}
             activeNoteId={activeNoteId}
+            activeFileId={activeFileId}
             onDelete={deleteNote}
             onDragStart={handleDragStart}
             onUpdate={updateNote}

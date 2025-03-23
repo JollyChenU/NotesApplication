@@ -75,9 +75,12 @@ const noteService = {
     }
   },
 
-  createNote: async (fileId) => {
+  createNote: async (fileId, afterNoteId = null) => {
     try {
-      const response = await axios.post(`${API_URL}/files/${fileId}/notes`, { content: '' });
+      const response = await axios.post(`${API_URL}/files/${fileId}/notes`, {
+        content: '',
+        after_note_id: afterNoteId
+      });
       return response.data;
     } catch (error) {
       console.error('Error creating note:', error);
