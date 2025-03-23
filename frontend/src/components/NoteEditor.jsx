@@ -193,23 +193,21 @@ const NoteEditor = ({
               const contentBeforeCursor = currentContent.substring(0, cursorPosition);
               const contentAfterCursor = currentContent.substring(cursorPosition);
               
-              // 先更新当前笔记内容为光标前的内容
+              // 立即更新textarea的显示内容和note的content
+              e.target.value = contentBeforeCursor;
+              note.content = contentBeforeCursor;
+              
+              // 先更新当前笔记内容为光标前的内容，不等待API响应
               onUpdate(note.id, {
                 content: contentBeforeCursor,
                 format: note.format
               });
               
-              // 立即更新textarea的显示内容和note的content
-              e.target.value = contentBeforeCursor;
-              note.content = contentBeforeCursor;
-              
-              // 延迟创建新笔记，确保当前笔记更新完成
-              setTimeout(() => {
-                handleCreateNewNote(note.id, {
-                  content: contentAfterCursor,
-                  format: note.format
-                });
-              }, 200); // 增加延迟时间，确保前一个操作完成
+              // 直接创建新笔记，不等待当前笔记更新完成
+              handleCreateNewNote(note.id, {
+                content: contentAfterCursor,
+                format: note.format
+              });
             }
           }}
           onFocus={() => onFocus(note.id)}

@@ -180,25 +180,43 @@ function App() {
     // 处理新笔记创建请求
     if (typeof id === 'object' && id !== null && id.isNew) {
       if (!activeFileId && !id.fileId) return;
+      
+      // 创建一个临时笔记对象，立即添加到UI中
+      const tempNote = {
+        id: `temp-${Date.now()}`,
+        content: id.content || '',
+        format: id.format || 'text',
+        isTemp: true
+      };
+      
+      // 立即更新UI，添加临时笔记
+      const currentNoteIndex = notes.findIndex(note => note.id === id.afterNoteId);
+      if (currentNoteIndex !== -1) {
+        const updatedNotes = [...notes];
+        updatedNotes.splice(currentNoteIndex + 1, 0, tempNote);
+        setNotes(updatedNotes);
+      }
+      
       try {
-        // 创建新笔记，传递afterNoteId参数确保新笔记创建在当前笔记之后
-        const response = await noteService.createNote(id.fileId || activeFileId, id.afterNoteId);
-        // 获取新创建的笔记ID
-        const newNoteId = response.id;
-        // 更新新笔记的内容和格式
-        await noteService.updateNote(newNoteId, {
-          content: id.content || '',
-          format: id.format || 'text'
-        });
-        // 重新获取笔记列表以更新UI
+        // 创建新笔记，直接传递内容和格式，只需一次API调用
+        const response = await noteService.createNote(
+          id.fileId || activeFileId, 
+          id.afterNoteId, 
+          id.content, 
+          id.format
+        );
+        
+        // 创建成功后更新笔记列表
         fetchNotes(id.fileId || activeFileId);
         return;
       } catch (error) {
         console.error('Error creating new note:', error);
+        // 发生错误时移除临时笔记
+        setNotes(notes.filter(note => !note.isTemp));
         throw error;
       }
     }
-
+    
     // 处理常规笔记更新
     const originalNotes = [...notes];
     try {

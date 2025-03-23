@@ -22,39 +22,30 @@ const NoteList = ({
     const currentIndex = notes.findIndex(note => note.id === currentNoteId);
     if (currentIndex === -1) return;
     
-    // 创建新笔记对象，使用正确的属性名order而不是position
-    const newNote = {
-      content: newNoteData.content || '',
-      format: newNoteData.format || 'text',
-      order: currentIndex + 1
-    };
-    
-    // 使用从props传入的activeFileId，而不是尝试从笔记中提取
-    // activeFileId已经作为props传入组件
     if (activeFileId) {
-      // 使用noteService直接创建新笔记
+      // 创建临时笔记对象，立即添加到UI中
+      const tempNote = {
+        id: `temp-${Date.now()}`,
+        content: newNoteData.content || '',
+        format: newNoteData.format || 'text',
+        isTemp: true
+      };
+      
+      // 立即更新UI，添加临时笔记到当前笔记之后
+      const updatedNotes = [...notes];
+      updatedNotes.splice(currentIndex + 1, 0, tempNote);
+      
       try {
-        // 先更新当前笔记，确保内容已保存
-        onUpdate(currentNoteId, { content: notes.find(note => note.id === currentNoteId)?.content || '' });
-        // 然后创建新笔记
-        setTimeout(async () => {
-          try {
-            // 这里应该调用App.jsx中的createNote方法，并传递必要的参数
-            // 但由于我们没有直接访问该方法，所以使用onUpdate来处理
-            // 父组件应该识别这是一个新笔记请求
-            onUpdate({
-              isNew: true,
-              fileId: activeFileId,
-              content: newNoteData.content || '',
-              format: newNoteData.format || 'text',
-              afterNoteId: currentNoteId
-            });
-          } catch (error) {
-            console.error('创建新笔记时出错:', error);
-          }
-        }, 100); // 增加延迟确保前一个操作完成
+        // 直接创建新笔记，不需要先更新当前笔记
+        onUpdate({
+          isNew: true,
+          fileId: activeFileId,
+          content: newNoteData.content || '',
+          format: newNoteData.format || 'text',
+          afterNoteId: currentNoteId
+        });
       } catch (error) {
-        console.error('更新笔记时出错:', error);
+        console.error('创建新笔记时出错:', error);
       }
     } else {
       console.error('无法创建新笔记：找不到有效的文件ID');

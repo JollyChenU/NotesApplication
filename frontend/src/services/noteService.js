@@ -75,10 +75,11 @@ const noteService = {
     }
   },
 
-  createNote: async (fileId, afterNoteId = null) => {
+  createNote: async (fileId, afterNoteId = null, content = '', format = 'text') => {
     try {
       const response = await axios.post(`${API_URL}/files/${fileId}/notes`, {
-        content: '',
+        content: content,
+        format: format,
         after_note_id: afterNoteId
       });
       return response.data;

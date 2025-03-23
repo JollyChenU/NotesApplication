@@ -30,6 +30,8 @@ def create_note(file_id):
     """
     data = request.get_json()
     after_note_id = data.get('after_note_id')
+    content = data.get('content', '')
+    format = data.get('format', 'text')
     
     if after_note_id:
         # 获取目标笔记的order值
@@ -49,8 +51,8 @@ def create_note(file_id):
         new_order = (db.session.query(db.func.max(Note.order)).filter(Note.file_id == file_id).scalar() or 0) + 1
     
     new_note = Note(
-        content=data.get('content', ''),
-        format=data.get('format', 'text'),
+        content=content,
+        format=format,
         order=new_order,
         file_id=file_id
     )
