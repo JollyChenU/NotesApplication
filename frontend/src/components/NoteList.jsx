@@ -56,6 +56,7 @@ const NoteList = ({
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null);
   const [selectedNoteId, setSelectedNoteId] = React.useState(null);
   const [subMenuAnchorEl, setSubMenuAnchorEl] = React.useState(null);
+  const [copiedNote, setCopiedNote] = React.useState(null);
   const handleMenuOpen = (event, noteId) => {
     event.preventDefault();
     setMenuAnchorEl(event.currentTarget);
@@ -79,17 +80,33 @@ const NoteList = ({
       case 'copy':
         const note = notes.find(n => n.id === selectedNoteId);
         if (note) {
+          // 将笔记内容保存到剪贴板
           navigator.clipboard.writeText(note.content);
+          // 同时保存到临时缓存中，包括内容和格式
+          setCopiedNote({
+            content: note.content,
+            format: note.format || 'text'
+          });
+        }
+        break;
+      case 'paste':
+        // 检查临时缓存中是否有笔记信息
+        if (copiedNote && selectedNoteId) {
+          // 将缓存的笔记内容应用到当前选中的笔记
+          onUpdate(selectedNoteId, {
+            content: copiedNote.content,
+            format: copiedNote.format
+          });
         }
         break;
       case 'duplicate':
         const originalNote = notes.find(n => n.id === selectedNoteId);
         if (originalNote) {
           onUpdate({
-            id: Date.now(),
+            isNew: true,
             content: originalNote.content,
             format: originalNote.format || 'text',
-            position: notes.length
+            afterNoteId: selectedNoteId
           });
         }
         break;
@@ -348,6 +365,7 @@ const NoteList = ({
       >
         <MenuItem onClick={() => handleMenuItemClick('delete')}>删除</MenuItem>
         <MenuItem onClick={() => handleMenuItemClick('copy')}>复制</MenuItem>
+        <MenuItem onClick={() => handleMenuItemClick('paste')}>粘贴</MenuItem>
         <MenuItem onClick={() => handleMenuItemClick('duplicate')}>创建副本</MenuItem>
         <MenuItem
           onClick={handleSubMenuOpen}
