@@ -64,10 +64,12 @@ const NoteEditor = ({
       fontFamily: 'inherit',
       fontSize: 'inherit',
       padding: '2px 8px',
-      boxShadow: isActive ? '0 0 0 2px #1976d2' : 'none',
-      transition: 'box-shadow 0.2s ease-in-out',
+      boxShadow: 'none',
+      border: 'none',
+      transition: 'all 0.3s ease-in-out',
       '&:hover': {
-        boxShadow: '0 0 0 1px rgba(25, 118, 210, 0.5)'
+        boxShadow: 'none',
+        border: 'none'
       }
     };
 
@@ -125,6 +127,7 @@ const NoteEditor = ({
           position: 'relative',
           width: '95%',
           overflow: 'hidden',
+
           '& textarea': {
             ...getMarkdownStyles(),
             position: 'absolute',
@@ -134,13 +137,26 @@ const NoteEditor = ({
             outline: 'none',
             resize: 'none',
             background: 'transparent',
-            opacity: isEditorVisible ? 1 : 0,
-            zIndex: isEditorVisible ? 2 : 1
+            opacity: 1,
+            zIndex: isEditing ? 3 : 1,
+            caretColor: '#3f51b5',
+            color: '#000000',
+            '&::selection': {
+              backgroundColor: 'rgba(0, 123, 255, 0.3)'
+            },
+            '&:focus': {
+              border: 'none',
+              outline: 'none',
+              boxShadow: 'none'
+            }
           },
           '& .markdown-preview': {
             ...getMarkdownStyles(),
-            opacity: isEditorVisible ? 0 : 1,
-            zIndex: isEditorVisible ? 1 : 2
+            opacity: 1,
+            zIndex: 2,
+            '&::selection': {
+              backgroundColor: 'rgba(0, 123, 255, 0.3)'
+            }
           }
         }}
       >

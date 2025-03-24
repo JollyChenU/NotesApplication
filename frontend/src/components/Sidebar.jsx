@@ -65,7 +65,7 @@ const Sidebar = ({
         {/* Toggle Button */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
           <IconButton onClick={toggleSidebar}>
-            {open ? <ChevronLeftIcon /> : <MenuIcon />}
+            {open ? <ChevronLeftIcon className="sidebar-collapse-icon" /> : <MenuIcon className="sidebar-expand-icon" />}
           </IconButton>
         </Box>
         
@@ -144,7 +144,7 @@ const Sidebar = ({
               }
             }}
           >
-            <AddIcon />
+            <AddIcon className="sidebar-add-file-icon" />
           </IconButton>
         </Box>
         <List>

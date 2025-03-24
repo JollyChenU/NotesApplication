@@ -119,7 +119,17 @@ const NoteList = ({
             top: mousePosition.y - 20,
             zIndex: 1000,
             pointerEvents: 'none',
-            width: '300px'
+            width: '100%',
+            maxWidth: '900px',
+            '@media (max-width: 1200px)': {
+              maxWidth: '800px',
+            },
+            '@media (max-width: 900px)': {
+              maxWidth: '90%',
+            },
+            '@media (max-width: 600px)': {
+              maxWidth: '95%',
+            }
           }}
         >
           <Paper
@@ -140,11 +150,28 @@ const NoteList = ({
         <Box
           sx={{
             position: 'fixed',
-            left: 269,
-            right: 0,
-            margin: '0 auto',
-            width: 'calc(100% - 240px)',
-            maxWidth: '1182px',
+            width: (() => {
+              const noteElements = document.querySelectorAll('[data-note-container]');
+              if (noteElements.length > 0) {
+                const paperElement = noteElements[0].querySelector('.MuiPaper-root');
+                if (paperElement) {
+                  const paperRect = paperElement.getBoundingClientRect();
+                  return `${paperRect.width}px`;
+                }
+              }
+              return '85%';
+            })(),
+            left: (() => {
+              const noteElements = document.querySelectorAll('[data-note-container]');
+              if (noteElements.length > 0) {
+                const paperElement = noteElements[0].querySelector('.MuiPaper-root');
+                if (paperElement) {
+                  const paperRect = paperElement.getBoundingClientRect();
+                  return `${paperRect.left}px`;
+                }
+              }
+              return '7.5%';
+            })(),
             height: '4px',
             backgroundColor: '#1976d2',
             zIndex: 2,
@@ -195,9 +222,21 @@ const NoteList = ({
             data-note-id={note.id}
             sx={{
               p: 2,
-              mb: 2,
+              mb: 1,
               position: 'relative',
               width: '100%',
+              maxWidth: '900px', // 设置最大宽度限制
+              mx: 'auto', // 水平居中
+              // 响应式宽度设置
+              '@media (max-width: 1200px)': {
+                maxWidth: '800px',
+              },
+              '@media (max-width: 900px)': {
+                maxWidth: '90%',
+              },
+              '@media (max-width: 600px)': {
+                maxWidth: '95%',
+              },
               background: (() => {
                 if (draggingNoteId && dropIndicatorIndex !== null) {
                   const currentIndex = notes.findIndex(n => n.id === note.id);
@@ -208,7 +247,16 @@ const NoteList = ({
                 return '#ffffff';
               })(),
               opacity: draggingNoteId === note.id ? 0.6 : 1,
-              transition: 'all 0.2s ease-in-out'
+              transition: 'all 0.3s ease-in-out',
+              border: '1px solid transparent', // 默认透明边框
+              boxShadow: 'none', // 默认无阴影
+              '&:hover': {
+                border: '1px solid rgba(0, 0, 0, 0.12)', // 悬停时显示边框
+                boxShadow: '0 1px 3px rgba(0,0,0,0.12)', // 悬停时显示阴影
+                '& .delete-button, & .drag-handle': {
+                  opacity: 1 // 悬停时显示删除按钮和拖曳图标
+                }
+              }
             }}
           >
             {/* 笔记操作按钮组 */}
@@ -224,6 +272,7 @@ const NoteList = ({
             >
               {/* 拖拽手柄 */}
               <Box
+                className="drag-handle"
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -231,6 +280,8 @@ const NoteList = ({
                   padding: '4px',
                   fontSize: '24px',
                   color: '#666',
+                  opacity: 0, // 默认隐藏
+                  transition: 'opacity 0.2s ease-in-out', // 添加过渡效果
                   '&:active': {
                     cursor: 'grabbing',
                     color: '#333'
@@ -261,10 +312,17 @@ const NoteList = ({
                 <NoteDragHandle />
               </Box>
             </Box>
-            {/* 删除按钮 */}
+            {/* 删除按钮 - 默认隐藏，悬停时显示 */}
             <IconButton
+              className="delete-button"
               onClick={() => onDelete(note.id)}
-              sx={{ position: 'absolute', top: 8, right: 8 }}
+              sx={{ 
+                position: 'absolute', 
+                top: 8, 
+                right: 8,
+                opacity: 0, // 默认隐藏
+                transition: 'opacity 0.2s ease-in-out' // 添加过渡效果
+              }}
             >
               <DeleteIcon />
             </IconButton>
