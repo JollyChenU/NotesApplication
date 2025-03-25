@@ -7,7 +7,7 @@
 import React, { useState } from 'react';
 import { Box, IconButton } from '@mui/material';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import ReactMarkdown from 'react-markdown';
+import TipTapEditor from './TipTapEditor';
 
 const NoteEditor = ({
   note,
@@ -22,10 +22,10 @@ const NoteEditor = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isEditorVisible, setIsEditorVisible] = useState(false);
 
-  // 确保onCreateNewNote是一个函数
-  const handleCreateNewNote = (noteId, data) => {
+  // 确保onCreateNewNote是一个函数，并支持回调函数
+  const handleCreateNewNote = (noteId, data, callback) => {
     if (typeof onCreateNewNote === 'function') {
-      onCreateNewNote(noteId, data);
+      onCreateNewNote(noteId, data, callback);
     } else {
       console.error('onCreateNewNote is not a function');
     }
@@ -118,121 +118,18 @@ const NoteEditor = ({
   };
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', maxWidth: 'calc(100% - 40px)' }}
          onMouseEnter={() => setIsEditorVisible(true)}
          onMouseLeave={() => setIsEditorVisible(false)}>
-      <Box
-        component="div"
-        sx={{
-          position: 'relative',
-          width: '95%',
-          overflow: 'hidden',
-
-          '& textarea': {
-            ...getMarkdownStyles(),
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            border: 'none',
-            outline: 'none',
-            resize: 'none',
-            background: 'transparent',
-            opacity: 1,
-            zIndex: isEditing ? 3 : 1,
-            caretColor: '#3f51b5',
-            color: '#000000',
-            '&::selection': {
-              backgroundColor: 'rgba(0, 123, 255, 0.3)'
-            },
-            '&:focus': {
-              border: 'none',
-              outline: 'none',
-              boxShadow: 'none'
-            }
-          },
-          '& .markdown-preview': {
-            ...getMarkdownStyles(),
-            opacity: 1,
-            zIndex: 2,
-            '&::selection': {
-              backgroundColor: 'rgba(0, 123, 255, 0.3)'
-            }
-          }
-        }}
-      >
-        <textarea
-          data-note-id={note.id}
-          value={note.content}
-          onChange={(e) => {
-            onUpdate(note.id, {
-              content: e.target.value,
-              format: note.format
-            });
-            e.target.style.height = 'auto';
-            e.target.style.height = `${e.target.scrollHeight}px`;
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              if (e.shiftKey) {
-                // Shift+Enter 实现换行
-                e.preventDefault();
-                
-                // 获取光标位置和内容
-                const cursorPosition = e.target.selectionStart;
-                const currentContent = note.content;
-                const contentBeforeCursor = currentContent.substring(0, cursorPosition);
-                const contentAfterCursor = currentContent.substring(cursorPosition);
-                
-                // 在光标位置插入换行符
-                const newContent = contentBeforeCursor + '\n' + contentAfterCursor;
-                
-                // 更新笔记内容
-                onUpdate(note.id, {
-                  content: newContent,
-                  format: note.format
-                });
-                
-                // 手动设置新的光标位置（在换行符之后）
-                setTimeout(() => {
-                  e.target.selectionStart = cursorPosition + 1;
-                  e.target.selectionEnd = cursorPosition + 1;
-                }, 0);
-                
-                return;
-              }
-              // 阻止默认的回车换行行为
-              e.preventDefault();
-              
-              // 获取光标位置和内容
-              const cursorPosition = e.target.selectionStart;
-              const currentContent = note.content;
-              const contentBeforeCursor = currentContent.substring(0, cursorPosition);
-              const contentAfterCursor = currentContent.substring(cursorPosition);
-              
-              // 立即更新textarea的显示内容和note的content
-              e.target.value = contentBeforeCursor;
-              note.content = contentBeforeCursor;
-              
-              // 先更新当前笔记内容为光标前的内容，不等待API响应
-              onUpdate(note.id, {
-                content: contentBeforeCursor,
-                format: note.format
-              });
-              
-              // 直接创建新笔记，不等待当前笔记更新完成
-              handleCreateNewNote(note.id, {
-                content: contentAfterCursor,
-                format: note.format
-              });
-            }
-          }}
-          onFocus={() => onFocus(note.id)}
-          onBlur={onBlur}
-        />
-        <div className="markdown-preview">
-          {renderContent()}
-        </div>
-      </Box>
+      <TipTapEditor
+        note={note}
+        isActive={isActive}
+        onUpdate={onUpdate}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        isEditing={isEditing}
+        onCreateNewNote={handleCreateNewNote}
+      />
     </Box>
   );
 };

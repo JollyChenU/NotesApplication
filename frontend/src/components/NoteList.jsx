@@ -18,7 +18,7 @@ const NoteList = ({
   onFocus,
   onBlur
 }) => {
-  const handleCreateNewNote = (currentNoteId, newNoteData) => {
+  const handleCreateNewNote = (currentNoteId, newNoteData, callback) => {
     const currentIndex = notes.findIndex(note => note.id === currentNoteId);
     if (currentIndex === -1) return;
     
@@ -37,13 +37,18 @@ const NoteList = ({
       
       try {
         // 直接创建新笔记，不需要先更新当前笔记
-        onUpdate({
+        const newNoteId = onUpdate({
           isNew: true,
           fileId: activeFileId,
           content: newNoteData.content || '',
           format: newNoteData.format || 'text',
           afterNoteId: currentNoteId
         });
+        
+        // 如果提供了回调函数，则调用它并传递新笔记ID
+        if (typeof callback === 'function' && newNoteId) {
+          callback(newNoteId);
+        }
       } catch (error) {
         console.error('创建新笔记时出错:', error);
       }
@@ -238,8 +243,8 @@ const NoteList = ({
           <Paper
             data-note-id={note.id}
             sx={{
-              p: 2,
-              mb: 1,
+              p: 3, // 增加内边距从2到3
+              mb: 2, // 增加底部外边距从1到2
               position: 'relative',
               width: '100%',
               maxWidth: '900px', // 设置最大宽度限制

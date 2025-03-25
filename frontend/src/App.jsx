@@ -208,7 +208,8 @@ function App() {
         
         // 创建成功后更新笔记列表
         fetchNotes(id.fileId || activeFileId);
-        return;
+        // 返回新笔记ID，以便回调函数使用
+        return response.id;
       } catch (error) {
         console.error('Error creating new note:', error);
         // 发生错误时移除临时笔记
