@@ -1,13 +1,13 @@
 # Notes 笔记应用
 
-一个正在尝试的笔记应用，支持Markdown编辑、实时预览、笔记拖拽排序等功能。
+一个正在尝试的笔记应用，支持富文本编辑、Markdown语法、实时预览、笔记拖拽排序等功能。
 
 ## 功能特性
 
-- ✨ Markdown编辑与实时预览
+- ✨ 富文本编辑与Markdown语法支持
 - 🔄 笔记拖拽排序
 - 💾 自动保存
-- 🎨 毛坯房的界面
+- 🎨 简洁现代的界面
 
 ## 更新日志
 
@@ -45,7 +45,7 @@ http://localhost:5173
 
 - React 18.2.0
 - Material-UI (MUI) 5.13.0
-- React Markdown 8.0.7
+- TipTap 编辑器 2.11.5
 - React Beautiful DnD 13.1.1
 - Axios 1.4.0
 - Vite 4.3.5
@@ -94,33 +94,45 @@ npm run dev
 ## 使用说明
 
 1. 创建笔记：点击右上角的"+"按钮
-2. 编辑笔记：直接在文本区域输入，支持Markdown语法
-3. 预览：编辑区域下方实时显示Markdown渲染结果
+2. 编辑笔记：直接在文本区域输入，支持富文本编辑和Markdown语法
+3. 格式转换：可以通过右键菜单将笔记转换为不同格式（文本、标题、列表、引用等）
 4. 排序：通过左侧拖动手柄拖拽笔记调整顺序
-5. 删除：点击笔记右上角的删除图标
+5. 删除：点击笔记右上角的删除图标或使用右键菜单
 
 ## 开发特性
 
 - 使用React Hooks进行状态管理
+- 集成TipTap编辑器，支持富文本编辑和Markdown语法
 - 实现了防抖优化，提升输入性能
 - RESTful API设计
 - SQLite数据持久化
 - 支持笔记实时保存
 - 自定义拖拽排序实现
+- 支持多种笔记格式（文本、标题、列表、引用等）
 
 ## 项目结构
 
 ```
 Notes/
 ├── app.py              # Flask后端应用
+├── config.py           # 配置文件
+├── notes.db            # SQLite数据库文件
 ├── requirements.txt    # Python依赖
-├── notes.db           # SQLite数据库
+├── CHANGELOG.md        # 双语更新日志
+├── CHANGELOG_CN.md     # 中文更新日志
+├── CHANGELOG_EN.md     # 英文更新日志
+├── DEPLOY_UBUNTU.md    # Ubuntu部署指南
+├── ERROR_LOG.md        # 错误日志
 ├── models/            # 数据库模型
+│   ├── __init__.py    # 包初始化
 │   ├── note.py        # 笔记模型
 │   └── note_file.py   # 笔记文件模型
 ├── routes/            # API路由
+│   ├── __init__.py    # 包初始化
 │   ├── notes.py       # 笔记路由
 │   └── files.py       # 文件路由
+├── tests/             # 测试目录
+│   └── __init__.py    # 测试初始化
 └── frontend/          # React前端应用
     ├── src/
     │   ├── components/  # React组件
@@ -128,7 +140,10 @@ Notes/
     │   ├── services/    # API服务
     │   ├── App.jsx      # 主应用组件
     │   └── main.jsx     # 应用入口
+    ├── .env.development # 开发环境配置
+    ├── .env.production  # 生产环境配置
     ├── package.json     # Node.js依赖配置
+    ├── vite.config.js   # Vite配置
     └── index.html       # HTML模板
 ```
 
@@ -136,16 +151,18 @@ Notes/
 
 ### 优化功能
 
-- [ ] 优化笔记块在页面内的自适应宽度显示
-- [ ] 优化编辑功能，支持编辑栏位置按下Ctrl+Enter保存并退出
+- [x] 优化笔记块在页面内的自适应宽度显示
+- [x] 优化编辑功能，支持富文本编辑和Markdown语法
+- [ ] 进一步优化TipTap编辑器的性能和用户体验
 
 ### 新增功能
 
+- [x] 支持多种笔记格式（文本、标题、列表、引用等）
 - [ ] 新增左侧建立笔记文件夹功能
 - [ ] 添加用户认证系统
 - [ ] 支持笔记标签和分类
 - [ ] 添加笔记搜索功能
-- [ ] 支持图片上传
+- [ ] 支持图片上传和管理
 - [ ] 添加笔记分享功能
 - [ ] 支持深色模式
 

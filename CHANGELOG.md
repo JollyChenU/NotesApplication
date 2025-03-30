@@ -1,5 +1,66 @@
 # Changelog / 更新日志
 
+## [0.0.5] - 2025-03-30
+
+### New Features / 新功能
+- Editor Framework Upgrade
+  - Migrated from ReactMarkdown to TipTap Editor
+  - Implemented enhanced rich text editing capabilities
+  - Optimized editor performance and stability
+  - Provided improved real-time preview experience
+- 升级编辑器框架
+  - 从ReactMarkdown迁移至TipTap Editor
+  - 实现更强大的富文本编辑功能
+  - 优化编辑器性能和稳定性
+  - 提供更好的实时预览体验
+
+- Enhanced Markdown Rendering
+  - Added inline Markdown syntax real-time rendering
+  - Supported more Markdown extension syntax
+  - Optimized rendering performance and display effects
+  - Provided more intuitive editing experience
+- 增强Markdown渲染能力
+  - 新增行内Markdown语法实时渲染
+  - 支持更多Markdown扩展语法
+  - 优化渲染性能和显示效果
+  - 提供更直观的编辑体验
+
+- Enhanced Note Block Features
+  - Added note block quick action toolbar
+  - Supported quick note content copying
+  - Implemented note block deletion functionality
+  - Provided multiple format conversion options
+  - Optimized note block management experience
+- 新增笔记块功能增强
+  - 添加笔记块快捷操作菜单栏
+  - 支持笔记内容快速复制
+  - 实现笔记块删除功能
+  - 提供多种格式转换选项
+  - 优化笔记块管理体验
+
+### Optimizations / 优化
+- Interaction Experience Optimization
+  - Implemented quick note block creation with Enter key
+  - Optimized transition animations between note blocks
+  - Improved note block selection and focus management
+  - Enhanced overall operation fluidity
+- 交互体验优化
+  - 实现回车键快速创建新笔记块
+  - 优化笔记块之间的过渡动画
+  - 改进笔记块选择和焦点管理
+  - 提升整体操作流畅度
+
+- Performance Optimization
+  - Optimized editor rendering performance
+  - Improved large document loading speed
+  - Reduced unnecessary re-renders
+  - Optimized memory usage
+- 性能优化
+  - 优化编辑器渲染性能
+  - 改进大型文档的加载速度
+  - 减少不必要的重渲染
+  - 优化内存占用
+
 ## [0.0.4] - 2025-03-03
 
 ### New Features / 新功能

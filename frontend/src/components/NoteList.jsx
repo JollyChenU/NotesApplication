@@ -37,7 +37,7 @@ const NoteList = ({
       
       try {
         // 直接创建新笔记，不需要先更新当前笔记
-        const newNoteId = onUpdate({
+        const newNoteIdPromise = onUpdate({
           isNew: true,
           fileId: activeFileId,
           content: newNoteData.content || '',
@@ -45,9 +45,21 @@ const NoteList = ({
           afterNoteId: currentNoteId
         });
         
-        // 如果提供了回调函数，则调用它并传递新笔记ID
-        if (typeof callback === 'function' && newNoteId) {
-          callback(newNoteId);
+        // 处理可能的Promise返回值
+        if (newNoteIdPromise instanceof Promise) {
+          // 如果是Promise，等待解析后再调用回调
+          newNoteIdPromise.then(resolvedId => {
+            if (typeof callback === 'function' && resolvedId) {
+              callback(resolvedId);
+            }
+          }).catch(error => {
+            console.error('解析新笔记ID Promise时出错:', error);
+          });
+        } else {
+          // 如果不是Promise，直接调用回调
+          if (typeof callback === 'function' && newNoteIdPromise) {
+            callback(newNoteIdPromise);
+          }
         }
       } catch (error) {
         console.error('创建新笔记时出错:', error);
@@ -142,9 +154,12 @@ const NoteList = ({
             zIndex: 1000,
             pointerEvents: 'none',
             width: '100%',
-            maxWidth: '900px',
+            maxWidth: '1200px',
+            '@media (max-width: 1400px)': {
+              maxWidth: '1100px',
+            },
             '@media (max-width: 1200px)': {
-              maxWidth: '800px',
+              maxWidth: '950px',
             },
             '@media (max-width: 900px)': {
               maxWidth: '90%',
@@ -247,11 +262,14 @@ const NoteList = ({
               mb: 2, // 增加底部外边距从1到2
               position: 'relative',
               width: '100%',
-              maxWidth: '900px', // 设置最大宽度限制
+              maxWidth: '1200px', // 增加最大宽度限制
               mx: 'auto', // 水平居中
               // 响应式宽度设置
+              '@media (max-width: 1400px)': {
+                maxWidth: '1100px',
+              },
               '@media (max-width: 1200px)': {
-                maxWidth: '800px',
+                maxWidth: '950px',
               },
               '@media (max-width: 900px)': {
                 maxWidth: '90%',

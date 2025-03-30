@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.0.5] - 2025-03-30
+
+### New Features
+- Editor Framework Upgrade
+  - Migrated from ReactMarkdown to TipTap Editor
+  - Implemented enhanced rich text editing capabilities
+  - Optimized editor performance and stability
+  - Provided improved real-time preview experience
+
+- Enhanced Markdown Rendering
+  - Added inline Markdown syntax real-time rendering
+  - Supported more Markdown extension syntax
+  - Optimized rendering performance and display effects
+  - Provided more intuitive editing experience
+
+- Enhanced Note Block Features
+  - Added note block quick action toolbar
+  - Supported quick note content copying
+  - Implemented note block deletion functionality
+  - Provided multiple format conversion options
+  - Optimized note block management experience
+
+### Optimizations
+- Interaction Experience Optimization
+  - Implemented quick note block creation with Enter key
+  - Optimized transition animations between note blocks
+  - Improved note block selection and focus management
+  - Enhanced overall operation fluidity
+
+- Performance Optimization
+  - Optimized editor rendering performance
+  - Improved large document loading speed
+  - Reduced unnecessary re-renders
+  - Optimized memory usage
+
 ## [0.0.4] - 2025-03-03
 
 ### New Features

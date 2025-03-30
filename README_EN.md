@@ -1,13 +1,13 @@
 # Notes - A Modern Note-Taking Application
 
-A note-taking application in development that supports Markdown editing, real-time preview, and note drag-and-drop sorting.
+A modern note-taking application that supports rich text editing, Markdown syntax, real-time preview, and note drag-and-drop sorting functionality.
 
 ## Features
 
-- ✨ Markdown editing with real-time preview
+- ✨ Rich text editing with Markdown syntax support
 - 🔄 Note drag-and-drop sorting
 - 💾 Auto-save functionality
-- 🎨 Basic interface
+- 🎨 Clean and modern interface
 
 ## Changelog
 
@@ -45,7 +45,7 @@ http://localhost:5173
 
 - React 18.2.0
 - Material-UI (MUI) 5.13.0
-- React Markdown 8.0.7
+- TipTap Editor 2.11.5
 - React Beautiful DnD 13.1.1
 - Axios 1.4.0
 - Vite 4.3.5
@@ -94,33 +94,45 @@ Application will start at http://localhost:5173
 ## Usage Guide
 
 1. Create note: Click the "+" button in the top right corner
-2. Edit note: Input directly in the text area, supporting Markdown syntax
-3. Preview: Markdown rendering results are displayed in real-time below the editing area
+2. Edit note: Input directly in the text area, supporting rich text editing and Markdown syntax
+3. Format conversion: Convert notes to different formats (text, headings, lists, quotes, etc.) via right-click menu
 4. Sort: Drag notes using the handle on the left to adjust order
-5. Delete: Click the delete icon in the top right corner of the note
+5. Delete: Click the delete icon in the top right corner of the note or use the right-click menu
 
 ## Development Features
 
 - React Hooks for state management
+- TipTap editor integration for rich text editing and Markdown syntax
 - Debounce optimization for improved input performance
 - RESTful API design
 - SQLite data persistence
 - Real-time note saving
 - Custom drag-and-drop sorting implementation
+- Support for multiple note formats (text, headings, lists, quotes, etc.)
 
 ## Project Structure
 
 ```
 Notes/
 ├── app.py              # Flask backend application
+├── config.py           # Configuration file
+├── notes.db            # SQLite database file
 ├── requirements.txt    # Python dependencies
-├── notes.db           # SQLite database
+├── CHANGELOG.md        # Bilingual changelog
+├── CHANGELOG_CN.md     # Chinese changelog
+├── CHANGELOG_EN.md     # English changelog
+├── DEPLOY_UBUNTU.md    # Ubuntu deployment guide
+├── ERROR_LOG.md        # Error logging
 ├── models/            # Database models
+│   ├── __init__.py    # Package initialization
 │   ├── note.py        # Note model
 │   └── note_file.py   # Note file model
 ├── routes/            # API routes
+│   ├── __init__.py    # Package initialization
 │   ├── notes.py       # Note routes
 │   └── files.py       # File routes
+├── tests/             # Test directory
+│   └── __init__.py    # Test initialization
 └── frontend/          # React frontend application
     ├── src/
     │   ├── components/  # React components
@@ -128,7 +140,10 @@ Notes/
     │   ├── services/    # API services
     │   ├── App.jsx      # Main application component
     │   └── main.jsx     # Application entry
+    ├── .env.development # Development environment config
+    ├── .env.production  # Production environment config
     ├── package.json     # Node.js dependency configuration
+    ├── vite.config.js   # Vite configuration
     └── index.html       # HTML template
 ```
 
@@ -136,16 +151,18 @@ Notes/
 
 ### Optimizations
 
-- [ ] Optimize adaptive width display of note blocks in the page
-- [ ] Add Ctrl+Enter shortcut in edit mode to save and exit (same as clicking edit icon)
+- [x] Optimize adaptive width display of note blocks in the page
+- [x] Optimize editing functionality with rich text editing and Markdown syntax
+- [ ] Further optimize TipTap editor performance and user experience
 
 ### New Features
 
+- [x] Support multiple note formats (text, headings, lists, quotes, etc.)
 - [ ] Add note folder creation functionality in the left sidebar
 - [ ] Add user authentication system
 - [ ] Support note tags and categories
 - [ ] Add note search functionality
-- [ ] Support image upload
+- [ ] Support image upload and management
 - [ ] Add note sharing functionality
 - [ ] Support dark mode
 
