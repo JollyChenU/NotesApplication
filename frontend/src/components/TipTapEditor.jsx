@@ -1,7 +1,9 @@
 /**
  * @author Jolly
- * @date 2025-03-30
+ * @date 2025-04-01
  * @description TipTap编辑器组件，提供富文本编辑功能
+ * @version 1.1.0
+ * @license GPL-3.0
  */
 
 import React, { useEffect } from 'react';

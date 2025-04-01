@@ -1,8 +1,17 @@
+<!--
+ * @author Jolly
+ * @date 2025-04-01
+ * @description 项目错误日志，记录开发过程中遇到的问题及解决方案
+ * @version 1.0.0
+ * @license GPL-3.0
+-->
+
 # 错误日志 Error Log
 
 ## 目录 Contents
 1. [前端页面空白问题](#1-前端页面空白问题)
 2. [React-Markdown渲染行内代码崩溃问题](#2-react-markdown渲染行内代码崩溃问题)
+3. [方向键在笔记块间移动失效问题](#3-方向键在笔记块间移动失效问题)
 
 ## 1. 前端页面空白问题
 
@@ -132,3 +141,76 @@ const TipTapRenderer = ({ content }) => {
 - [TipTap Editor Documentation](https://tiptap.dev/introduction)
 - [CodeBlockLowlight Extension](https://tiptap.dev/api/nodes/code-block-lowlight)
 - [React Error Handling Best Practices](https://reactjs.org/docs/error-boundaries.html)
+
+## 3. 方向键在笔记块间移动失效问题
+
+### 问题描述 Description
+在使用方向键（向上、向下箭头键）尝试在不同笔记块之间移动光标时，光标无法正确跳转到相邻笔记块，导致用户体验不佳。
+
+### 现象表现 Symptoms
+- 在笔记块的开头按上箭头键，光标不会移动到上一个笔记块
+- 在笔记块的末尾按下箭头键，光标不会移动到下一个笔记块
+- 从控制台输出可以看到，系统无法正确识别当前笔记ID或找到下一个笔记块
+
+### 原因分析 Root Cause
+1. **ID 重复问题**：DOM 中每个笔记 ID 出现两次，导致在寻找下一个笔记时始终停留在相同 ID 的另一个元素上
+2. **光标位置判断不准确**：未能有效检测光标是否真正处于文档的开头或末尾
+3. **笔记 ID 类型不一致**：DOM 中的 ID 和代码中比较的 ID 类型可能不一致（字符串与数字）
+
+### 代码修改 Code Changes
+```jsx
+// 原代码 - 简单获取所有笔记ID
+const noteElements = document.querySelectorAll('[data-note-id]');
+const noteIds = Array.from(noteElements).map(el => el.getAttribute('data-note-id'));
+
+// 修改后 - 解决ID重复问题
+const noteElements = document.querySelectorAll('[data-note-id]');
+
+// 创建Map用于去除重复ID并保持顺序
+const uniqueNoteIdsMap = new Map();
+Array.from(noteElements).forEach(el => {
+  const id = String(el.getAttribute('data-note-id'));
+  // 如果这个ID还没有出现过，就添加到Map中
+  if (!uniqueNoteIdsMap.has(id)) {
+    uniqueNoteIdsMap.set(id, true);
+  }
+});
+
+// 转换为唯一ID数组
+const uniqueNoteIds = Array.from(uniqueNoteIdsMap.keys());
+
+// 确保当前笔记ID也是字符串格式
+const currentId = String(note?.id);
+
+// 增加防止导航到相同ID的处理
+if (targetNoteId === currentId) {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+    // 查找下一个不同ID
+    for (let i = currentIndex + 1; i < uniqueNoteIds.length; i++) {
+      if (uniqueNoteIds[i] !== currentId) {
+        targetNoteId = uniqueNoteIds[i];
+        break;
+      }
+    }
+  } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+    // 查找上一个不同ID
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      if (uniqueNoteIds[i] !== currentId) {
+        targetNoteId = uniqueNoteIds[i];
+        break;
+      }
+    }
+  }
+}
+```
+
+### 预防措施 Prevention
+1. 在处理DOM元素ID时，始终使用统一的数据类型（如转换为字符串）
+2. 处理可能包含重复项的数据集合时，使用Set或Map进行去重
+3. 实现导航功能时，添加备用方法确保鲁棒性
+4. 使用详细的调试日志，帮助发现DOM结构和ID关系中的问题
+
+### 相关文档 References
+- [JavaScript Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map)
+- [DOM操作最佳实践](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Client-side_web_APIs/Manipulating_documents)
+- [JavaScript事件处理](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener)
