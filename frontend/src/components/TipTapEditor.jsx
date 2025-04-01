@@ -1,6 +1,6 @@
 /**
- * @author Trae AI
- * @date 2023-07-10
+ * @author Jolly
+ * @date 2025-03-30
  * @description TipTap编辑器组件，提供富文本编辑功能
  */
 
@@ -19,37 +19,76 @@ import Image from '@tiptap/extension-image';
 import { Box } from '@mui/material';
 import htmlToMarkdown from 'html-to-markdown';
 
-// 设置编辑器焦点的辅助函数
-const setFocusToEditor = (editorElement, noteId) => {
+// 改进设置编辑器焦点的辅助函数，确保可靠地设置焦点
+const setFocusToEditor = (editorElement, noteId, position = 'end') => {
   try {
-    // 尝试使用全局存储的编辑器实例
+    // 尝试使用全局存储的编辑器实例（最可靠的方法）
     if (window.tiptapEditors && window.tiptapEditors[noteId]) {
-      window.tiptapEditors[noteId].commands.focus('end');
+      window.tiptapEditors[noteId].commands.focus(position);
+
+      // 强制触发一次点击以确保获得焦点
+      if (window.tiptapEditors[noteId].view && window.tiptapEditors[noteId].view.dom) {
+        window.tiptapEditors[noteId].view.dom.click();
+      }
       return true;
     }
-    
+
     // 如果没有找到编辑器实例，尝试使用DOM API
+    if (!editorElement && noteId) {
+      // 尝试通过noteId查找编辑器元素
+      const editorContainer = document.querySelector(`[data-note-id="${noteId}"]`);
+      if (editorContainer) {
+        editorElement = editorContainer.querySelector('.ProseMirror');
+      }
+    }
+
     if (editorElement) {
-      // 将光标设置到编辑器末尾
+      // 首先确保元素可见并可滚动到视图中
+      editorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // 强制获得焦点
+      editorElement.focus();
+
+      // 将光标设置到编辑器指定位置
       const selection = window.getSelection();
       const range = document.createRange();
-      
+
       // 清除当前选择
       selection.removeAllRanges();
-      
-      // 设置范围到编辑器内容的末尾
-      range.selectNodeContents(editorElement);
-      range.collapse(false); // false表示折叠到末尾
-      
+
+      if (editorElement.firstChild) {
+        // 如果有内容，根据position决定光标位置
+        if (position === 'start') {
+          range.setStart(editorElement.firstChild, 0);
+          range.collapse(true);
+        } else {
+          // 设置到最后位置
+          const lastNode = editorElement.lastChild || editorElement;
+          const lastTextNode = lastNode.lastChild || lastNode;
+          const offset = lastTextNode.textContent ? lastTextNode.textContent.length : 0;
+          try {
+            range.setStart(lastTextNode, offset);
+            range.collapse(true);
+          } catch (err) {
+            range.selectNodeContents(editorElement);
+            range.collapse(false); // false表示末尾
+          }
+        }
+      } else {
+        // 如果没有内容，就选择整个编辑器
+        range.selectNodeContents(editorElement);
+        range.collapse(position === 'start');
+      }
+
       // 应用新的选择范围
       selection.addRange(range);
-      
-      // 确保编辑器获得焦点
-      editorElement.focus();
+
+      // 确保编辑器获得焦点（再次尝试）
+      setTimeout(() => editorElement.focus(), 0);
+
       return true;
     }
   } catch (error) {
-    console.error('设置编辑器焦点失败:', error);
     return false;
   }
   return false;
@@ -68,7 +107,7 @@ const TipTapEditor = ({
   if (!window.tiptapEditors) {
     window.tiptapEditors = {};
   }
-  
+
   // 创建TipTap编辑器实例
   const editor = useEditor({
     extensions: [
@@ -105,28 +144,28 @@ const TipTapEditor = ({
                 const start = range.from;
                 const end = range.to;
                 const textToEmbolden = match[1];
-                
+
                 // 删除原始的**text**
                 tr.delete(start, end);
-                
+
                 // 插入加粗文本
                 const boldText = this.type.create();
                 tr.insert(start, boldText);
                 tr.insertText(textToEmbolden, start + 1);
-                
+
                 // 将光标位置设置在加粗文本之后
                 tr.setSelection(state.selection.constructor.create(
                   tr.doc,
                   start + textToEmbolden.length + 1
                 ));
-                
+
                 // 确保光标位于加粗区域之外，后续输入不会继续应用加粗格式
                 setTimeout(() => {
                   if (this.editor) {
                     this.editor.commands.unsetBold();
                   }
                 }, 0);
-                
+
                 return tr;
               }
             }
@@ -163,28 +202,28 @@ const TipTapEditor = ({
                 const start = range.from;
                 const end = range.to;
                 const textToItalicize = match[1];
-                
+
                 // 删除原始的*text*
                 tr.delete(start, end);
-                
+
                 // 插入斜体文本
                 const italicText = this.type.create();
                 tr.insert(start, italicText);
                 tr.insertText(textToItalicize, start + 1);
-                
+
                 // 将光标位置设置在斜体文本之后
                 tr.setSelection(state.selection.constructor.create(
                   tr.doc,
                   start + textToItalicize.length + 1
                 ));
-                
+
                 // 确保光标位于斜体区域之外，后续输入不会继续应用斜体格式
                 setTimeout(() => {
                   if (this.editor) {
                     this.editor.commands.unsetItalic();
                   }
                 }, 0);
-                
+
                 return tr;
               }
             }
@@ -221,28 +260,28 @@ const TipTapEditor = ({
                 const start = range.from;
                 const end = range.to;
                 const textToStrike = match[1];
-                
+
                 // 删除原始的~~text~~
                 tr.delete(start, end);
-                
+
                 // 插入删除线文本
                 const strikeText = this.type.create();
                 tr.insert(start, strikeText);
                 tr.insertText(textToStrike, start + 1);
-                
+
                 // 将光标位置设置在删除线文本之后
                 tr.setSelection(state.selection.constructor.create(
                   tr.doc,
                   start + textToStrike.length + 1
                 ));
-                
+
                 // 确保光标位于删除线区域之外，后续输入不会继续应用删除线格式
                 setTimeout(() => {
                   if (this.editor) {
                     this.editor.commands.unsetStrike();
                   }
                 }, 0);
-                
+
                 return tr;
               }
             }
@@ -271,28 +310,28 @@ const TipTapEditor = ({
                 const start = range.from;
                 const end = range.to;
                 const textToCode = match[1];
-                
+
                 // 删除原始的`text`
                 tr.delete(start, end);
-                
+
                 // 插入行内代码
                 const codeText = this.type.create();
                 tr.insert(start, codeText);
                 tr.insertText(textToCode, start + 1);
-                
+
                 // 将光标位置设置在行内代码之后
                 tr.setSelection(state.selection.constructor.create(
                   tr.doc,
                   start + textToCode.length + 1
                 ));
-                
+
                 // 确保光标位于行内代码区域之外，后续输入不会继续应用行内代码格式
                 setTimeout(() => {
                   if (this.editor) {
                     this.editor.commands.unsetCode();
                   }
                 }, 0);
-                
+
                 return tr;
               }
             }
@@ -320,7 +359,7 @@ const TipTapEditor = ({
       try {
         // 使用自定义处理确保所有行内格式正确转换
         markdown = htmlToMarkdown.convert(html);
-        
+
         // 修复各种行内格式的转换问题
         // 查找所有<strong>标签并替换为Markdown的**格式
         const strongRegex = /<strong>(.*?)<\/strong>/g;
@@ -330,7 +369,7 @@ const TipTapEditor = ({
         const strikeRegex = /<s>(.*?)<\/s>/g;
         // 查找所有<code>标签并替换为Markdown的`格式
         const codeRegex = /<code>(.*?)<\/code>/g;
-        
+
         // 检查是否存在需要手动处理的行内格式
         if (strongRegex.test(html) || emRegex.test(html) || strikeRegex.test(html) || codeRegex.test(html)) {
           // 先进行手动替换
@@ -347,15 +386,13 @@ const TipTapEditor = ({
           if (codeRegex.test(markdown)) {
             markdown = markdown.replace(codeRegex, '`$1`');
           }
-          
+
           // 如果还有其他HTML标签，继续使用htmlToMarkdown处理
           if (/<[^>]*>/g.test(markdown)) {
             markdown = htmlToMarkdown.convert(markdown);
           }
         }
-      } catch (error) {
-        console.error('Error converting HTML to Markdown:', error);
-      }
+      } catch (error) {}
       onUpdate(note.id, {
         content: markdown,
         format: note.format
@@ -372,25 +409,25 @@ const TipTapEditor = ({
     if (editor && note?.content !== undefined && editor.getHTML() !== note.content) {
       // 处理各种Markdown行内格式语法，将其转换为对应的HTML标签
       let processedContent = note.content;
-      
+
       // 处理加粗语法，将**text**转换为<strong>text</strong>
       const boldRegex = /\*\*(.*?)\*\*/g;
       if (boldRegex.test(processedContent)) {
         processedContent = processedContent.replace(boldRegex, '<strong>$1</strong>');
       }
-      
+
       // 处理斜体语法，将*text*转换为<em>text</em>
       const italicRegex = /(?<!\*)\*((?:[^\*]+))\*(?!\*)/g;
       if (italicRegex.test(processedContent)) {
         processedContent = processedContent.replace(italicRegex, '<em>$1</em>');
       }
-      
+
       // 处理删除线语法，将~~text~~转换为<s>text</s>
       const strikeRegex = /~~(.*?)~~/g;
       if (strikeRegex.test(processedContent)) {
         processedContent = processedContent.replace(strikeRegex, '<s>$1</s>');
       }
-      
+
       // 处理行内代码语法，将`text`转换为<code>text</code>
       const codeRegex = /`([^`]+)`/g;
       if (codeRegex.test(processedContent)) {
@@ -399,12 +436,12 @@ const TipTapEditor = ({
       editor.commands.setContent(processedContent);
     }
   }, [editor, note?.content]);
-  
+
   // 将编辑器实例存储到全局对象中
   useEffect(() => {
     if (editor && note?.id) {
       window.tiptapEditors[note.id] = editor;
-      
+
       return () => {
         // 在组件卸载时删除编辑器实例
         delete window.tiptapEditors[note.id];
@@ -418,283 +455,261 @@ const TipTapEditor = ({
 
     // 添加键盘事件处理
     const handleKeyDown = (e) => {
-      // 处理方向键
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        // 获取当前编辑器的状态和选择
-        const { state } = editor;
-        const { selection } = state;
-        const { from, to } = selection;
-        
-        // 获取当前文档的内容大小
-        const docSize = state.doc.content.size;
-        
-        // 判断是否在文档的边界
-        const isAtDocumentStart = from === 0;
-        const isAtDocumentEnd = to === docSize;
-        
-        // 获取当前光标所在行的信息
-        const $from = state.doc.resolve(from);
-        const $to = state.doc.resolve(to);
-        
-        // 判断是否在第一行或最后一行
-        const isAtFirstLine = $from.parentOffset === 0;
-        const isAtLastLine = $to.parentOffset === $to.parent.content.size;
-        
-        // 向下键且在最后一行，或向上键且在第一行时，需要跨笔记块移动
-        if ((e.key === 'ArrowDown' && isAtLastLine && isAtDocumentEnd) || 
-            (e.key === 'ArrowUp' && isAtFirstLine && isAtDocumentStart)) {
-          e.preventDefault();
-          
-          // 获取当前笔记的ID
-          const currentNoteId = note.id;
-          
-          // 获取所有笔记元素
-          const noteElements = document.querySelectorAll('[data-note-id]');
-          const noteIds = Array.from(noteElements).map(el => el.getAttribute('data-note-id'));
-          
-          // 找到当前笔记在列表中的索引
-          const currentIndex = noteIds.indexOf(currentNoteId);
-          
-          if (currentIndex !== -1) {
-            let targetNoteId = null;
-            
-            // 向下移动到下一个笔记
-            if (e.key === 'ArrowDown' && currentIndex < noteIds.length - 1) {
-              targetNoteId = noteIds[currentIndex + 1];
-              
-              // 触发onFocus事件，通知父组件将焦点设置到目标笔记
-              if (typeof onFocus === 'function') {
-                onFocus(targetNoteId);
-                
-                // 使用setTimeout确保DOM已更新
-                setTimeout(() => {
-                  // 获取目标编辑器实例
-                  const targetEditor = window.tiptapEditors[targetNoteId];
-                  if (targetEditor) {
-                    // 将光标设置到目标编辑器的开头
-                    targetEditor.commands.focus('start');
-                  }
-                }, 50);
+      // 获取所有笔记ID并处理重复问题
+      const noteElements = document.querySelectorAll('[data-note-id]');
+
+      // 创建Map用于去除重复ID并保持顺序
+      const uniqueNoteIdsMap = new Map();
+      Array.from(noteElements).forEach(el => {
+        const id = String(el.getAttribute('data-note-id'));
+        // 如果这个ID还没有出现过，就添加到Map中
+        if (!uniqueNoteIdsMap.has(id)) {
+          uniqueNoteIdsMap.set(id, true);
+        }
+      });
+
+      // 转换为唯一ID数组
+      const uniqueNoteIds = Array.from(uniqueNoteIdsMap.keys());
+
+      // 确保当前笔记ID也是字符串格式
+      const currentId = String(note?.id);
+
+      // 找到当前笔记在去重列表中的位置
+      const currentIndex = uniqueNoteIds.indexOf(currentId);
+
+      if (currentIndex === -1) {
+        // 如果找不到当前笔记，尝试备用方法
+        // 备用方法：查找包含当前活动元素的笔记容器
+        const activeElement = document.activeElement;
+        let currentNoteElement = activeElement;
+
+        // 向上遍历DOM树，查找包含data-note-id属性的父元素
+        while (currentNoteElement && !currentNoteElement.hasAttribute('data-note-id')) {
+          currentNoteElement = currentNoteElement.parentElement;
+        }
+
+        if (currentNoteElement) {
+          const backupCurrentId = currentNoteElement.getAttribute('data-note-id');
+          const backupIndex = uniqueNoteIds.indexOf(String(backupCurrentId));
+
+          // 使用备用方法找到的索引
+          if (backupIndex !== -1) {
+            // 继续使用备用索引处理导航
+            navigateBetweenNotes(e, backupCurrentId, backupIndex, uniqueNoteIds);
+            return;
+          }
+        }
+
+        return; // 如果备用方法也失败，则退出
+      }
+
+      // 使用正常索引处理导航
+      navigateBetweenNotes(e, currentId, currentIndex, uniqueNoteIds);
+    };
+
+    // 抽取导航逻辑为单独函数，以便可以从多个地方调用
+    const navigateBetweenNotes = (e, currentId, currentIndex, uniqueNoteIds) => {
+      let targetNoteId = null;
+      let focusPosition = 'end';
+      let shouldNavigateBetweenNotes = false;
+
+      // 更全面的光标位置检测 - 包括视觉位置检测
+      try {
+        // 首先获取基本位置信息
+        const isAtDocumentStart = editor.state.selection.$from.pos === 0;
+        const isAtDocumentEnd = editor.state.selection.$to.pos === editor.state.doc.content.size;
+
+        // 获取更详细的段落位置信息
+        const isAtParagraphStart = editor.state.selection.$from.parentOffset === 0;
+        const isAtParagraphEnd = editor.state.selection.$from.parentOffset === editor.state.selection.$from.parent.content.size;
+
+        // 检测当前光标是否在可见的第一行或最后一行 - 通过选区位置计算
+        let caretRect = null;
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+          caretRect = selection.getRangeAt(0).getBoundingClientRect();
+        }
+
+        // 获取编辑器容器位置
+        const editorElement = editor.view.dom;
+        const editorRect = editorElement.getBoundingClientRect();
+
+        // 视觉上判断是否在第一行或最后一行
+        const isVisuallyAtFirstLine = caretRect && Math.abs(caretRect.top - editorRect.top) < 20;
+        const isVisuallyAtLastLine = caretRect && Math.abs(caretRect.bottom - editorRect.bottom) < 20;
+
+        // 处理方向键逻辑
+        if (e.key === 'ArrowUp') {
+          // 如果是在文档开头、段落开头或视觉上在第一行，则移动到上一个笔记
+          if (isAtDocumentStart || (isAtParagraphStart && isVisuallyAtFirstLine)) {
+            // 移动到上一个笔记
+            if (currentIndex > 0) {
+              shouldNavigateBetweenNotes = true;
+              targetNoteId = uniqueNoteIds[currentIndex - 1];
+              focusPosition = 'end';
+            }
+          }
+        }
+        else if (e.key === 'ArrowDown') {
+          // 如果是在文档末尾、段落末尾或视觉上在最后一行，则移动到下一个笔记
+          if (isAtDocumentEnd || (isAtParagraphEnd && isVisuallyAtLastLine)) {
+            if (currentIndex < uniqueNoteIds.length - 1) {
+              shouldNavigateBetweenNotes = true;
+              targetNoteId = uniqueNoteIds[currentIndex + 1];
+              focusPosition = 'start';
+            }
+          }
+        }
+        else if (e.key === 'ArrowLeft') {
+          if (isAtDocumentStart) {
+            if (currentIndex > 0) {
+              shouldNavigateBetweenNotes = true;
+              targetNoteId = uniqueNoteIds[currentIndex - 1];
+              focusPosition = 'end';
+            }
+          }
+        }
+        else if (e.key === 'ArrowRight') {
+          if (isAtDocumentEnd) {
+            if (currentIndex < uniqueNoteIds.length - 1) {
+              shouldNavigateBetweenNotes = true;
+              targetNoteId = uniqueNoteIds[currentIndex + 1];
+              focusPosition = 'start';
+            }
+          }
+        }
+      } catch (error) {}
+
+      // 如果需要跨笔记块移动且有目标笔记ID
+      if (shouldNavigateBetweenNotes && targetNoteId) {
+        // 如果目标ID与当前ID相同，尝试获取下一个不同的ID
+        if (targetNoteId === currentId) {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+            // 向下或向右导航，查找当前索引之后的不同ID
+            for (let i = currentIndex + 1; i < uniqueNoteIds.length; i++) {
+              if (uniqueNoteIds[i] !== currentId) {
+                targetNoteId = uniqueNoteIds[i];
+                break;
               }
             }
-            // 向上移动到上一个笔记
-            else if (e.key === 'ArrowUp' && currentIndex > 0) {
-              targetNoteId = noteIds[currentIndex - 1];
-              
-              // 触发onFocus事件，通知父组件将焦点设置到目标笔记
-              if (typeof onFocus === 'function') {
-                onFocus(targetNoteId);
-                
-                // 使用setTimeout确保DOM已更新
-                setTimeout(() => {
-                  // 获取目标编辑器实例
-                  const targetEditor = window.tiptapEditors[targetNoteId];
-                  if (targetEditor) {
-                    // 将光标设置到目标编辑器的末尾
-                    targetEditor.commands.focus('end');
-                  }
-                }, 50);
+          } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+            // 向上或向左导航，查找当前索引之前的不同ID
+            for (let i = currentIndex - 1; i >= 0; i--) {
+              if (uniqueNoteIds[i] !== currentId) {
+                targetNoteId = uniqueNoteIds[i];
+                break;
               }
             }
           }
         }
-      }
-      
-      if (e.key === 'Enter') {
-        if (e.shiftKey) {
-          // Shift+Enter 实现换行，TipTap默认行为，不需要阻止
+
+        // 再次检查，如果目标ID仍然与当前ID相同，则放弃导航
+        if (targetNoteId === currentId) {
           return;
         }
-        
-        // 阻止默认的回车换行行为
+
+        // 强制阻止默认行为
         e.preventDefault();
-        e.stopPropagation(); // 阻止事件冒泡
-        
-        // 获取当前编辑器内容和光标位置
-        const selection = editor.state.selection;
-        const { from } = selection;
-        
-        // 获取光标位置前后的内容
-        const contentBeforeCursor = editor.state.doc.textBetween(0, from);
-        const contentAfterCursor = editor.state.doc.textBetween(from, editor.state.doc.content.size);
-        
-        // 将HTML转换为Markdown
-        let markdownBeforeCursor = contentBeforeCursor;
-        let markdownAfterCursor = contentAfterCursor;
-        try {
-          if (contentBeforeCursor) {
-            // 先设置编辑器内容为光标前的内容，然后获取HTML并转换为Markdown
-            editor.commands.setContent(contentBeforeCursor);
-            markdownBeforeCursor = htmlToMarkdown.convert(editor.getHTML());
+        e.stopPropagation();
+
+        // 使用异步函数确保在下一个事件循环执行导航
+        setTimeout(() => {
+          if (onFocus) {
+            onFocus(targetNoteId);
           }
-          
-          if (contentAfterCursor) {
-            // 临时设置编辑器内容为光标后的内容，然后获取HTML并转换为Markdown
-            editor.commands.setContent(contentAfterCursor);
-            markdownAfterCursor = htmlToMarkdown.convert(editor.getHTML());
-            
-            // 恢复编辑器内容为光标前的内容
-            editor.commands.setContent(contentBeforeCursor);
+
+          // 确保目标笔记可见
+          const targetEditorContainer = document.querySelector(`[data-note-id="${targetNoteId}"]`);
+          if (targetEditorContainer) {
+            targetEditorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
-        } catch (error) {
-          console.error('Error converting HTML to Markdown:', error);
-        }
-        
-        // 更新当前笔记内容为光标前的内容
-        onUpdate(note.id, {
-          content: markdownBeforeCursor,
-          format: note.format
-        });
-        
-        // 创建新笔记，内容为光标后的内容
-        if (typeof onCreateNewNote === 'function') {
-          // 传递回调函数，在新笔记创建后获取新笔记ID并设置焦点
-          onCreateNewNote(note.id, {
-            content: markdownAfterCursor,
-            format: note.format
-          }, (newNoteId) => {
-            // 使用setTimeout确保DOM已更新，增加延时时间以确保DOM完全更新
-            setTimeout(() => {
-              // 如果提供了新笔记ID，则尝试将焦点设置到新笔记
-              if (newNoteId) {
-                // 确保DOM完全更新后再设置焦点
-                requestAnimationFrame(() => {
-                  // 触发onFocus事件，通知父组件将焦点设置到新笔记
-                  // 确保newNoteId不是Promise对象
-                  if (newNoteId instanceof Promise) {
-                    newNoteId.then(id => onFocus(id));
-                  } else {
-                    onFocus(newNoteId);
-                  }
-                });
-                
-                // 尝试找到新笔记的编辑器元素并将光标设置到末尾
-                
-                // 使用更高效的选择器直接查找目标编辑器元素
-                const noteIdStr = newNoteId instanceof Promise ? 
-                  newNoteId.then(id => id.toString()) : newNoteId.toString();
-                
-                // 如果是Promise，等待解析后再查找元素
-                if (noteIdStr instanceof Promise) {
-                  noteIdStr.then(resolvedId => {
-                    const targetSelector = `[data-note-id="${resolvedId}"] .ProseMirror`;
-                    const targetEditor = document.querySelector(targetSelector);
-                    if (targetEditor) {
-                      setFocusToEditor(targetEditor, resolvedId);
-                    }
-                  });
-                  return; // 等待Promise解析，不继续执行
-                }
-                
-                // 直接使用选择器查找目标编辑器元素
-                const targetSelector = `[data-note-id="${noteIdStr}"] .ProseMirror`;
-                const targetEditor = document.querySelector(targetSelector);
-                let foundEditor = false;
-                
-                if (targetEditor) {
-                  foundEditor = true;
-                  setFocusToEditor(targetEditor, noteIdStr);
-                }
-                
-                // 如果没有找到编辑器，尝试多次查找
-                if (typeof foundEditor === 'undefined' || !foundEditor) {
-                  // 第一次尝试未找到编辑器，稍后再次尝试
-                  
-                  // 定义重试函数
-                  const retryFindEditor = (attempt = 1, maxAttempts = 3) => {
-                    // 开始下一次尝试查找编辑器元素
-                    
-                    // 首先尝试使用全局存储的编辑器实例
-                    // 检查全局编辑器实例
-                    // 处理newNoteId可能是Promise的情况
-                    const noteId = newNoteId instanceof Promise ? newNoteId.then(id => id) : newNoteId;
-                    const editorInstance = window.tiptapEditors && (noteId instanceof Promise ? null : window.tiptapEditors[noteId]);
-                    
-                    if (editorInstance) {
-                      // 尝试找到编辑器实例
-                      try {
-                        // 使用TipTap API设置焦点和光标
-                        // 使用TipTap API设置焦点
-                        editorInstance.commands.focus('end');
-                        // TipTap API设置焦点成功
-                        return true; // 成功找到并设置
-                      } catch (error) {
-                        console.error(`第${attempt+1}次尝试使用TipTap API设置焦点失败:`, error);
-                      }
-                    } else {
-                      // 未找到编辑器实例，尝试使用DOM查找
-                    }
-                    
-                    // 如果没有找到编辑器实例或设置失败，尝试使用DOM查找
-                    const retryEditorElements = document.querySelectorAll('.ProseMirror');
-                    // 查找ProseMirror元素
-                    
-                    // 记录所有找到的data-note-id
-                    const allNoteIds = [];
-                    document.querySelectorAll('[data-note-id]').forEach(el => {
-                      allNoteIds.push(el.getAttribute('data-note-id'));
-                    });
-                    // 获取页面上所有的data-note-id
-                    
-                    let found = false;
-                    
-                    retryEditorElements.forEach((el, index) => {
-                      // 检查ProseMirror元素
-                      const editorContainer = el.closest('[data-note-id]');
-                      if (editorContainer) {
-                        // 检查容器元素data-note-id
-                      }
-                      
-                      // 处理newNoteId可能是Promise的情况
-                      const noteIdStr = newNoteId instanceof Promise ? 
-                        newNoteId.then(id => id.toString()) : newNoteId.toString();
-                      
-                      // 比较data-note-id和noteId
-                      if (editorContainer && (noteIdStr instanceof Promise ? 
-                        false : // Promise情况下先跳过，等待异步处理
-                        editorContainer.getAttribute('data-note-id') === noteIdStr)) {
-                        // 找到新笔记编辑器元素
-                        found = true;
-                        setFocusToEditor(el, noteIdStr);
-                        return true;
-                      }
-                    });
-                    
-                    // 如果仍未找到且未达到最大尝试次数，继续重试
-                    if (!found && attempt < maxAttempts) {
-                      // 未找到编辑器，将再次尝试
-                      setTimeout(() => retryFindEditor(attempt + 1, maxAttempts), 8);
-                    } else if (!found) {
-                      // 已达到最大尝试次数，放弃查找编辑器
-                    }
-                    
-                    return found;
-                  };
-                  
-                  // 开始第一次重试
-                  setTimeout(() => retryFindEditor(), 0);
-                }
+
+          // 多轮重试设置焦点
+          const maxRetries = 5; // 增加重试次数
+          let currentRetry = 0;
+
+          const trySetFocus = () => {
+            // 1. 优先使用全局存储的编辑器实例
+            if (window.tiptapEditors && window.tiptapEditors[targetNoteId]) {
+              window.tiptapEditors[targetNoteId].commands.focus(focusPosition);
+              return true;
+            }
+
+            // 2. 然后尝试通过DOM查找编辑器元素
+            const targetEditor = document.querySelector(`[data-note-id="${targetNoteId}"] .ProseMirror`);
+            if (targetEditor) {
+              const result = setFocusToEditor(targetEditor, targetNoteId, focusPosition);
+              if (result) {
+                return true;
               }
-            }, 310); // 增加延时时间确保DOM完全更新
-          });
+            }
+
+            // 如果尚未达到最大重试次数，则继续尝试
+            if (++currentRetry < maxRetries) {
+              setTimeout(trySetFocus, 50 * currentRetry);
+            } else {
+              // 最后的尝试：模拟点击目标元素
+              const targetElement = document.querySelector(`[data-note-id="${targetNoteId}"]`);
+              if (targetElement) {
+                targetElement.click();
+              }
+            }
+
+            return false;
+          };
+
+          // 开始第一次尝试设置焦点
+          trySetFocus();
+
+        }, 10); // 短延时确保DOM已更新
+
+        return false; // 确保不再处理这个事件
+      }
+    };
+
+    // 全局处理键盘事件，以避免其他元素阻止事件传播
+    const globalKeyHandler = (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+        e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // 检查当前活动元素是否是此笔记的编辑器
+        const activeElement = document.activeElement;
+
+        // 寻找活动元素对应的笔记容器
+        let noteContainer = null;
+        let currentElement = activeElement;
+
+        // 向上遍历DOM树，查找包含data-note-id属性的父元素
+        while (currentElement && !noteContainer) {
+          if (currentElement.hasAttribute && currentElement.hasAttribute('data-note-id')) {
+            noteContainer = currentElement;
+          }
+          currentElement = currentElement.parentElement;
+        }
+
+        // 如果找到笔记容器，并且ID匹配，则处理键盘事件
+        if (noteContainer && String(noteContainer.getAttribute('data-note-id')) === String(note?.id)) {
+          handleKeyDown(e);
         }
       }
     };
 
-    // 添加事件监听器 - 使用editor.view.dom获取DOM元素
+    // 添加事件监听器 - 同时监听全局和编辑器元素
+    document.addEventListener('keydown', globalKeyHandler, true);
+
     const editorElement = editor?.view?.dom;
     if (editorElement) {
-      // 在捕获阶段添加事件监听器，确保最先处理事件
       editorElement.addEventListener('keydown', handleKeyDown, true);
-    };
+    }
 
     // 清理函数
     return () => {
+      document.removeEventListener('keydown', globalKeyHandler, true);
+
       if (editorElement) {
         editorElement.removeEventListener('keydown', handleKeyDown, true);
       }
     };
-  }, [editor, note?.id, note?.format, onUpdate, onCreateNewNote]);
+  }, [editor, note?.id, note?.format, onUpdate, onCreateNewNote, onFocus]);
 
   // 根据笔记格式获取样式
   const getEditorStyles = () => {
@@ -740,6 +755,7 @@ const TipTapEditor = ({
 
   return (
     <Box
+      data-note-id={note?.id} // 添加data-note-id属性，用于方向键导航功能识别笔记块
       sx={{
         position: 'relative',
         width: '100%',
