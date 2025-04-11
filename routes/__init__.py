@@ -2,20 +2,24 @@
 # -*- coding: utf-8 -*-
 
 """
-API路由模块
-
-该模块定义了应用的API路由蓝图，用于组织和管理所有API端点。
-包含了文件管理和笔记管理相关的路由。
-
-作者: [作者名]
-创建时间: 2024-01-01
+@author Jolly
+@date 2025-04-01
+@description 路由模块初始化文件
+@version 1.0.0
+@license GPL-3.0
 """
 
-from flask import Blueprint
+from flask import Blueprint, jsonify
 
-# 创建API蓝图，设置URL前缀为/api
-api = Blueprint('api', __name__, url_prefix='/api')
+# 创建主API蓝图
+api = Blueprint('api', __name__)
 
-# 导入各个路由模块
-from . import files  # 文件管理相关的路由
-from . import notes  # 笔记管理相关的路由
+@api.route('/')
+def index():
+    """API主页"""
+    return jsonify({
+        'message': 'Welcome to Notes API',
+        'version': '1.0.0'
+    })
+
+# 不在这里导入子模块，避免循环导入

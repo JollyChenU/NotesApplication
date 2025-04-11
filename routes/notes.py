@@ -1,33 +1,27 @@
-from flask import jsonify, request
-from . import api
-from models import db, Note
+"""
+@author Jolly
+@date 2025-04-01
+@description 笔记内容相关路由
+@version 1.1.0
+@license GPL-3.0
+"""
 
-@api.route('/files/<int:file_id>/notes', methods=['GET'])
+from flask import Blueprint, request, jsonify
+from extensions import db  # 从extensions导入db
+from models.note_file import NoteFile  # 直接从模块导入模型
+from models.note import Note  # 直接从模块导入模型
+
+notes_bp = Blueprint('notes_bp', __name__)
+
+@notes_bp.route('/files/<int:file_id>/notes', methods=['GET'])
 def get_notes(file_id):
-    """获取指定文件下的所有笔记
-
-    根据文件ID获取该文件下的所有笔记，按照笔记的排序字段升序排列。
-    返回笔记的完整信息，包括ID、内容、创建时间、更新时间和排序值。
-    """
+    """获取指定文件下的所有笔记"""
     notes = Note.query.filter_by(file_id=file_id).order_by(Note.order).all()
-    return jsonify([
-        {
-            'id': note.id,
-            'content': note.content,
-            'format': note.format,
-            'created_at': note.created_at.isoformat(),
-            'updated_at': note.updated_at.isoformat(),
-            'order': note.order
-        } for note in notes
-    ])
+    return jsonify([note.to_dict() for note in notes])
 
-@api.route('/files/<int:file_id>/notes', methods=['POST'])
+@notes_bp.route('/files/<int:file_id>/notes', methods=['POST'])
 def create_note(file_id):
-    """创建新笔记
-
-    在指定文件下创建新的笔记。如果提供了after_note_id参数，新笔记将被插入到该笔记之后；
-    否则，新笔记将被添加到列表末尾。
-    """
+    """创建新笔记"""
     data = request.get_json()
     after_note_id = data.get('after_note_id')
     content = data.get('content', '')
@@ -60,30 +54,15 @@ def create_note(file_id):
     db.session.commit()
     return jsonify({'message': 'Note created successfully', 'id': new_note.id}), 201
 
-@api.route('/notes/<int:note_id>', methods=['GET'])
+@notes_bp.route('/notes/<int:note_id>', methods=['GET'])
 def get_note(note_id):
-    """获取单个笔记
-
-    根据笔记ID获取特定笔记的详细信息。
-    如果笔记不存在，返回404错误。
-    """
+    """获取单个笔记"""
     note = Note.query.get_or_404(note_id)
-    return jsonify({
-        'id': note.id,
-        'content': note.content,
-        'format': note.format,
-        'created_at': note.created_at.isoformat(),
-        'updated_at': note.updated_at.isoformat()
-    })
+    return jsonify(note.to_dict())
 
-@api.route('/notes/<int:note_id>', methods=['PUT'])
+@notes_bp.route('/notes/<int:note_id>', methods=['PUT'])
 def update_note(note_id):
-    """更新笔记内容
-
-    根据笔记ID更新笔记的内容和排序值（如果提供）。
-    如果笔记不存在，返回404错误。
-    如果请求数据无效，返回400错误。
-    """
+    """更新笔记内容"""
     note = Note.query.get_or_404(note_id)
     data = request.get_json()
     
@@ -93,52 +72,27 @@ def update_note(note_id):
             'message': 'No data provided'
         }), 400
     
-    if 'content' not in data:
-        return jsonify({
-            'error': 'Invalid request',
-            'message': 'Content field is required'
-        }), 400
-    
-    if 'format' in data and not isinstance(data['format'], str):
-        return jsonify({
-            'error': 'Invalid request',
-            'message': 'Format field must be a string'
-        }), 400
-    
-    if 'order' in data and not isinstance(data['order'], (int, float)):
-        return jsonify({
-            'error': 'Invalid request',
-            'message': 'Order field must be a number'
-        }), 400
-        
-    note.content = data['content']
-    if 'format' in data:
+    if 'content' in data:
+        note.content = data['content']
+    if 'format' in data and isinstance(data['format'], str):
         note.format = data['format']
-    if 'order' in data:
+    if 'order' in data and isinstance(data['order'], (int, float)):
         note.order = data['order']
+        
     db.session.commit()
     return jsonify({'message': 'Note updated successfully'})
 
-@api.route('/notes/<int:note_id>', methods=['DELETE'])
+@notes_bp.route('/notes/<int:note_id>', methods=['DELETE'])
 def delete_note(note_id):
-    """删除笔记
-
-    根据笔记ID删除特定笔记。
-    如果笔记不存在，返回404错误。
-    """
+    """删除笔记"""
     note = Note.query.get_or_404(note_id)
     db.session.delete(note)
     db.session.commit()
     return jsonify({'message': 'Note deleted successfully'})
 
-@api.route('/notes/reorder', methods=['PUT'])
+@notes_bp.route('/notes/reorder', methods=['PUT'])
 def reorder_notes():
-    """重新排序笔记
-
-    根据提供的笔记ID列表重新设置笔记的显示顺序。
-    列表中的位置即为笔记的新顺序值。
-    如果发生错误，会进行回滚并返回相应的错误信息。
-    """
+    """重新排序笔记"""
     data = request.get_json()
     note_ids = data.get('noteIds', [])
     
@@ -164,7 +118,6 @@ def reorder_notes():
             db.session.commit()
         except Exception as commit_error:
             db.session.rollback()
-            api.logger.error(f'Database commit error: {str(commit_error)}')
             return jsonify({
                 'error': 'Database error',
                 'message': 'Failed to save note order changes'
@@ -176,7 +129,6 @@ def reorder_notes():
         })
         
     except Exception as e:
-        api.logger.error(f'Reorder notes error: {str(e)}')
         return jsonify({
             'error': 'Server error',
             'message': 'An unexpected error occurred while reordering notes'

@@ -2,27 +2,22 @@
 # -*- coding: utf-8 -*-
 
 """
-笔记文件路由模块
-
-该模块提供了笔记文件管理的API路由，包括文件的创建、查询、更新和删除功能。
-所有API端点都以/api/files为基础路径。
-
-作者: [作者名]
-创建时间: 2024-01-01
+@author Jolly
+@date 2025-04-01
+@description 文件管理相关路由
+@version 1.1.0
+@license GPL-3.0
 """
 
-from flask import jsonify, request
-from . import api
-from models import db, NoteFile
+from flask import Blueprint, request, jsonify
+from extensions import db  # 从extensions导入db
+from models.note_file import NoteFile  # 直接从模块导入模型
 
-@api.route('/files/reorder', methods=['PUT'])
+files_bp = Blueprint('files_bp', __name__)
+
+@files_bp.route('/files/reorder', methods=['PUT'])
 def reorder_files():
-    """重新排序文件
-
-    根据提供的文件ID列表重新设置文件的显示顺序。
-    列表中的位置即为文件的新顺序值。
-    如果发生错误，会进行回滚并返回相应的错误信息。
-    """
+    """重新排序文件"""
     data = request.get_json()
     file_ids = data.get('fileIds', [])
     
@@ -48,7 +43,6 @@ def reorder_files():
             db.session.commit()
         except Exception as commit_error:
             db.session.rollback()
-            api.logger.error(f'Database commit error: {str(commit_error)}')
             return jsonify({
                 'error': 'Database error',
                 'message': 'Failed to save file order changes'
@@ -60,36 +54,20 @@ def reorder_files():
         })
         
     except Exception as e:
-        api.logger.error(f'Reorder files error: {str(e)}')
         return jsonify({
             'error': 'Server error',
             'message': 'An unexpected error occurred while reordering files'
         }), 500
 
-@api.route('/files', methods=['GET'])
+@files_bp.route('/files', methods=['GET'])
 def get_files():
-    """获取所有笔记文件列表
-
-    返回所有笔记文件的基本信息，包括ID、名称、创建时间和更新时间。
-    """
+    """获取所有笔记文件列表"""
     files = NoteFile.query.order_by(NoteFile.order).all()
-    return jsonify([
-        {
-            'id': file.id,
-            'name': file.name,
-            'created_at': file.created_at.isoformat(),
-            'updated_at': file.updated_at.isoformat()
-        } for file in files
-    ])
+    return jsonify([file.to_dict() for file in files])
 
-@api.route('/files', methods=['POST'])
+@files_bp.route('/files', methods=['POST'])
 def create_file():
-    """创建新的笔记文件
-
-    接收文件名称参数，如果文件名已存在，则自动添加数字后缀。
-    新文件会被添加到列表末尾。
-    返回新创建的文件信息。
-    """
+    """创建新的笔记文件"""
     data = request.get_json()
     base_name = data['name']
     
@@ -114,43 +92,50 @@ def create_file():
         'name': new_file.name
     }), 201
 
-@api.route('/files/<int:file_id>', methods=['PUT'])
+@files_bp.route('/files/<int:file_id>', methods=['PUT'])
 def update_file(file_id):
-    """更新笔记文件信息
-
-    根据文件ID更新文件名称。
-    如果文件不存在，返回404错误。
-    """
+    """更新笔记文件信息"""
     file = NoteFile.query.get_or_404(file_id)
     data = request.get_json()
-    file.name = data['name']
+    
+    if isinstance(data, dict):
+        if 'name' in data:
+            file.name = data['name']
+        if 'folderId' in data:
+            # 确保folderId正确转换为整数或None
+            folder_id_value = data['folderId']
+            if folder_id_value == 'null' or folder_id_value is None:
+                file.folder_id = None
+            else:
+                try:
+                    file.folder_id = int(folder_id_value)
+                except (ValueError, TypeError):
+                    return jsonify({
+                        'error': 'Invalid folder ID',
+                        'message': f'Folder ID must be an integer, received: {folder_id_value}'
+                    }), 400
+    else:
+        file.name = data  # 兼容旧版API
+        
     db.session.commit()
     return jsonify({'message': 'File updated successfully'})
 
-@api.route('/files/<int:file_id>', methods=['DELETE'])
+@files_bp.route('/files/<int:file_id>', methods=['DELETE'])
 def delete_file(file_id):
-    """删除笔记文件
-
-    根据文件ID删除对应的笔记文件及其关联的所有笔记。
-    如果文件不存在，返回404错误。
-    如果删除过程中发生错误，会进行回滚并返回500错误。
-    """
+    """删除笔记文件"""
     try:
         file = NoteFile.query.get_or_404(file_id)
-        # 删除文件及其关联的所有笔记
         db.session.delete(file)
         try:
             db.session.commit()
             return jsonify({'message': 'File and associated notes deleted successfully'})
         except Exception as commit_error:
             db.session.rollback()
-            api.logger.error(f'Database commit error: {str(commit_error)}')
             return jsonify({
                 'error': 'Database error',
                 'message': 'Failed to delete file and associated notes'
             }), 500
     except Exception as e:
-        api.logger.error(f'Delete file error: {str(e)}')
         return jsonify({
             'error': 'Server error',
             'message': 'An unexpected error occurred while deleting the file'

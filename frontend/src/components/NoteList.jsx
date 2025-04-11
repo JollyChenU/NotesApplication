@@ -1,94 +1,156 @@
-import React from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { Box, Paper, IconButton, Menu, MenuItem } from '@mui/material';
 import NoteDragHandle from '@mui/icons-material/DragIndicator';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import NoteEditor from './NoteEditor';
+// 引入新的拖放工具
+import { NoteDndContext, createSortableItem } from '../utils/dnd-utils.jsx';
 
-const NoteList = ({
-  notes,
-  draggingNoteId,
-  dropIndicatorIndex,
-  mousePosition,
-  activeNoteId,
-  activeFileId, // 添加activeFileId作为props
-  onDelete,
-  onDragStart,
-  onUpdate,
-  onFocus,
-  onBlur
-}) => {
-  const handleCreateNewNote = (currentNoteId, newNoteData, callback) => {
-    const currentIndex = notes.findIndex(note => note.id === currentNoteId);
-    if (currentIndex === -1) return;
-    
-    if (activeFileId) {
-      // 创建临时笔记对象，立即添加到UI中
-      const tempNote = {
-        id: `temp-${Date.now()}`,
-        content: newNoteData.content || '',
-        format: newNoteData.format || 'text',
-        isTemp: true
-      };
-      
-      // 立即更新UI，添加临时笔记到当前笔记之后
-      const updatedNotes = [...notes];
-      updatedNotes.splice(currentIndex + 1, 0, tempNote);
-      
-      try {
-        // 直接创建新笔记，不需要先更新当前笔记
-        const newNoteIdPromise = onUpdate({
-          isNew: true,
-          fileId: activeFileId,
-          content: newNoteData.content || '',
-          format: newNoteData.format || 'text',
-          afterNoteId: currentNoteId
-        });
-        
-        // 处理可能的Promise返回值
-        if (newNoteIdPromise instanceof Promise) {
-          // 如果是Promise，等待解析后再调用回调
-          newNoteIdPromise.then(resolvedId => {
-            if (typeof callback === 'function' && resolvedId) {
-              callback(resolvedId);
-            }
-          }).catch(error => {
-            console.error('解析新笔记ID Promise时出错:', error);
-          });
-        } else {
-          // 如果不是Promise，直接调用回调
-          if (typeof callback === 'function' && newNoteIdPromise) {
-            callback(newNoteIdPromise);
+const NoteItem = memo(({ 
+  note, 
+  dragHandleProps = {}, 
+  isDragging = false, 
+  onDragStart, 
+  onUpdate, 
+  onDelete, 
+  onFocus, 
+  onBlur 
+}) => (
+  <Box
+    sx={{ position: 'relative' }}
+    data-note-container
+  >
+    <Paper
+      data-note-id={note.id}
+      sx={{
+        p: 3,
+        mb: 2,
+        position: 'relative',
+        width: '100%',
+        maxWidth: '1200px',
+        mx: 'auto',
+        '@media (max-width: 1400px)': {
+          maxWidth: '1100px',
+        },
+        '@media (max-width: 1200px)': {
+          maxWidth: '950px',
+        },
+        '@media (max-width: 900px)': {
+          maxWidth: '90%',
+        },
+        '@media (max-width: 600px)': {
+          maxWidth: '95%',
+        },
+        background: isDragging ? '#ffebee' : '#ffffff',
+        transition: 'all 0.3s ease-in-out',
+        border: '1px solid transparent',
+        boxShadow: 'none',
+        '&:hover': {
+          border: '1px solid rgba(0, 0, 0, 0.12)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+          '& .delete-button, & .drag-handle': {
+            opacity: 1
           }
         }
-      } catch (error) {
-        console.error('创建新笔记时出错:', error);
-      }
-    } else {
-      console.error('无法创建新笔记：找不到有效的文件ID');
-    }
-  };
-  const [editingNotes, setEditingNotes] = React.useState(new Set());
-  const [pressTimer, setPressTimer] = React.useState(null);
-  const [menuAnchorEl, setMenuAnchorEl] = React.useState(null);
-  const [selectedNoteId, setSelectedNoteId] = React.useState(null);
-  const [subMenuAnchorEl, setSubMenuAnchorEl] = React.useState(null);
-  const [copiedNote, setCopiedNote] = React.useState(null);
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          left: -40,
+          top: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}
+      >
+        <Box
+          className="drag-handle"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'grab',
+            padding: '4px',
+            fontSize: '24px',
+            color: '#666',
+            opacity: 0,
+            transition: 'opacity 0.2s ease-in-out',
+            '&:active': {
+              cursor: 'grabbing',
+              color: '#333'
+            }
+          }}
+          {...dragHandleProps}
+        >
+          <NoteDragHandle />
+        </Box>
+      </Box>
+      <IconButton
+        className="delete-button"
+        onClick={() => onDelete(note.id)}
+        sx={{ 
+          position: 'absolute', 
+          top: 8, 
+          right: 8,
+          opacity: 0,
+          transition: 'opacity 0.2s ease-in-out'
+        }}
+      >
+        <DeleteIcon />
+      </IconButton>
+      <NoteEditor
+        note={note}
+        isActive={false} // 将由父组件传递
+        onUpdate={onUpdate}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        isEditing={false} // 将由父组件传递
+        onCreateNewNote={() => {}} // 将由父组件传递
+      />
+    </Paper>
+  </Box>
+));
+
+// 创建可排序版本的NoteItem
+const SortableNoteItem = createSortableItem(NoteItem);
+
+const NoteList = ({
+  notes = [],
+  activeNoteId,
+  activeFileId,
+  onDelete = () => {},
+  onUpdate = () => {},
+  onFocus = () => {},
+  onBlur = () => {},
+  // 添加笔记排序处理函数
+  onReorder = () => {}
+}) => {
+  const [editingNotes, setEditingNotes] = useState(new Set());
+  const [pressTimer, setPressTimer] = useState(null);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [selectedNoteId, setSelectedNoteId] = useState(null);
+  const [subMenuAnchorEl, setSubMenuAnchorEl] = useState(null);
+  const [copiedNote, setCopiedNote] = useState(null);
+
   const handleMenuOpen = (event, noteId) => {
     event.preventDefault();
     setMenuAnchorEl(event.currentTarget);
     setSelectedNoteId(noteId);
   };
+
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
     setSelectedNoteId(null);
   };
+
   const handleSubMenuOpen = (event) => {
     setSubMenuAnchorEl(event.currentTarget);
   };
+
   const handleSubMenuClose = () => {
     setSubMenuAnchorEl(null);
   };
+
   const handleMenuItemClick = (action, format) => {
     switch (action) {
       case 'delete':
@@ -97,9 +159,7 @@ const NoteList = ({
       case 'copy':
         const note = notes.find(n => n.id === selectedNoteId);
         if (note) {
-          // 将笔记内容保存到剪贴板
           navigator.clipboard.writeText(note.content);
-          // 同时保存到临时缓存中，包括内容和格式
           setCopiedNote({
             content: note.content,
             format: note.format || 'text'
@@ -107,9 +167,7 @@ const NoteList = ({
         }
         break;
       case 'paste':
-        // 检查临时缓存中是否有笔记信息
         if (copiedNote && selectedNoteId) {
-          // 将缓存的笔记内容应用到当前选中的笔记
           onUpdate(selectedNoteId, {
             content: copiedNote.content,
             format: copiedNote.format
@@ -142,245 +200,45 @@ const NoteList = ({
     handleMenuClose();
     handleSubMenuClose();
   };
+
+  // 处理笔记排序
+  const handleReorder = (reorderedNotes) => {
+    // 更新UI
+    onReorder(reorderedNotes);
+    
+    // 发送到后端
+    const noteIds = reorderedNotes.map(note => note.id);
+    noteService.updateNoteOrder(noteIds)
+      .catch(error => console.error('Failed to update note order:', error));
+  };
+
   return (
     <Box sx={{ position: 'relative' }}>
-      {/* 拖拽时的阴影笔记块 */}
-      {draggingNoteId && mousePosition.x !== 0 && mousePosition.y !== 0 && (
-        <Box
-          sx={{
-            position: 'fixed',
-            left: mousePosition.x + 20,
-            top: mousePosition.y - 20,
-            zIndex: 1000,
-            pointerEvents: 'none',
-            width: '100%',
-            maxWidth: '1200px',
-            '@media (max-width: 1400px)': {
-              maxWidth: '1100px',
-            },
-            '@media (max-width: 1200px)': {
-              maxWidth: '950px',
-            },
-            '@media (max-width: 900px)': {
-              maxWidth: '90%',
-            },
-            '@media (max-width: 600px)': {
-              maxWidth: '95%',
-            }
-          }}
+      {Array.isArray(notes) && notes.length > 0 ? (
+        <NoteDndContext
+          items={notes}
+          onReorder={handleReorder}
         >
-          <Paper
-            sx={{
-              p: 2,
-              background: '#ffffff',
-              opacity: 0.6,
-              boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-            }}
-          >
-            {notes.find(note => note.id === draggingNoteId)?.content}
-          </Paper>
+          <div style={{ minHeight: '50px' }}>
+            {notes.map((note) => (
+              <SortableNoteItem
+                key={note.id}
+                id={String(note.id)}
+                note={note}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                onFocus={onFocus}
+                onBlur={onBlur}
+              />
+            ))}
+          </div>
+        </NoteDndContext>
+      ) : (
+        <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+          无笔记内容，点击右上角 + 按钮添加新笔记
         </Box>
       )}
 
-      {/* 拖拽放置位置指示器 */}
-      {draggingNoteId && dropIndicatorIndex !== null && (
-        <Box
-          sx={{
-            position: 'fixed',
-            width: (() => {
-              const noteElements = document.querySelectorAll('[data-note-container]');
-              if (noteElements.length > 0) {
-                const paperElement = noteElements[0].querySelector('.MuiPaper-root');
-                if (paperElement) {
-                  const paperRect = paperElement.getBoundingClientRect();
-                  return `${paperRect.width}px`;
-                }
-              }
-              return '85%';
-            })(),
-            left: (() => {
-              const noteElements = document.querySelectorAll('[data-note-container]');
-              if (noteElements.length > 0) {
-                const paperElement = noteElements[0].querySelector('.MuiPaper-root');
-                if (paperElement) {
-                  const paperRect = paperElement.getBoundingClientRect();
-                  return `${paperRect.left}px`;
-                }
-              }
-              return '7.5%';
-            })(),
-            height: '4px',
-            backgroundColor: '#1976d2',
-            zIndex: 2,
-            top: (() => {
-              const noteElements = document.querySelectorAll('[data-note-container]');
-              if (dropIndicatorIndex === 0) {
-                const firstElement = noteElements[0];
-                if (firstElement) {
-                  const paperElement = firstElement.querySelector('.MuiPaper-root');
-                  if (paperElement) {
-                    const paperRect = paperElement.getBoundingClientRect();
-                    return `${paperRect.top - 2}px`;
-                  }
-                }
-                return '0px';
-              } else if (dropIndicatorIndex === noteElements.length) {
-                const lastElement = noteElements[noteElements.length - 1];
-                if (lastElement) {
-                  const paperElement = lastElement.querySelector('.MuiPaper-root');
-                  if (paperElement) {
-                    const paperRect = paperElement.getBoundingClientRect();
-                    return `${paperRect.bottom + 2}px`;
-                  }
-                }
-                return '0px';
-              } else {
-                const currentElement = noteElements[dropIndicatorIndex];
-                const previousElement = noteElements[dropIndicatorIndex - 1];
-                if (currentElement && previousElement) {
-                  const currentPaper = currentElement.querySelector('.MuiPaper-root');
-                  const previousPaper = previousElement.querySelector('.MuiPaper-root');
-                  if (currentPaper && previousPaper) {
-                    const currentRect = currentPaper.getBoundingClientRect();
-                    const previousRect = previousPaper.getBoundingClientRect();
-                    return `${(previousRect.bottom + currentRect.top) / 2}px`;
-                  }
-                }
-                return '0px';
-              }
-            })()
-          }}
-        />
-      )}
-
-      {notes.map((note) => (
-        <Box key={note.id} sx={{ position: 'relative' }} data-note-container>
-          <Paper
-            data-note-id={note.id}
-            sx={{
-              p: 3, // 增加内边距从2到3
-              mb: 2, // 增加底部外边距从1到2
-              position: 'relative',
-              width: '100%',
-              maxWidth: '1200px', // 增加最大宽度限制
-              mx: 'auto', // 水平居中
-              // 响应式宽度设置
-              '@media (max-width: 1400px)': {
-                maxWidth: '1100px',
-              },
-              '@media (max-width: 1200px)': {
-                maxWidth: '950px',
-              },
-              '@media (max-width: 900px)': {
-                maxWidth: '90%',
-              },
-              '@media (max-width: 600px)': {
-                maxWidth: '95%',
-              },
-              background: (() => {
-                if (draggingNoteId && dropIndicatorIndex !== null) {
-                  const currentIndex = notes.findIndex(n => n.id === note.id);
-                  if (currentIndex === dropIndicatorIndex || currentIndex === dropIndicatorIndex - 1) {
-                    return '#ffebee';
-                  }
-                }
-                return '#ffffff';
-              })(),
-              opacity: draggingNoteId === note.id ? 0.6 : 1,
-              transition: 'all 0.3s ease-in-out',
-              border: '1px solid transparent', // 默认透明边框
-              boxShadow: 'none', // 默认无阴影
-              '&:hover': {
-                border: '1px solid rgba(0, 0, 0, 0.12)', // 悬停时显示边框
-                boxShadow: '0 1px 3px rgba(0,0,0,0.12)', // 悬停时显示阴影
-                '& .delete-button, & .drag-handle': {
-                  opacity: 1 // 悬停时显示删除按钮和拖曳图标
-                }
-              }
-            }}
-          >
-            {/* 笔记操作按钮组 */}
-            <Box
-              sx={{
-                position: 'absolute',
-                left: -40,
-                top: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1
-              }}
-            >
-              {/* 拖拽手柄 */}
-              <Box
-                className="drag-handle"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'grab',
-                  padding: '4px',
-                  fontSize: '24px',
-                  color: '#666',
-                  opacity: 0, // 默认隐藏
-                  transition: 'opacity 0.2s ease-in-out', // 添加过渡效果
-                  '&:active': {
-                    cursor: 'grabbing',
-                    color: '#333'
-                  }
-                }}
-                onClick={(e) => handleMenuOpen(e, note.id)}
-                onMouseDown={() => {
-                  const timer = setTimeout(() => {
-                    onDragStart(note.id);
-                  }, 250);
-                  setPressTimer(timer);
-                }}
-                onMouseUp={() => {
-                  // 清除定时器
-                  if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    setPressTimer(null);
-                  }
-                }}
-                onMouseLeave={() => {
-                  // 鼠标离开时也清除定时器
-                  if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    setPressTimer(null);
-                  }
-                }}
-              >
-                <NoteDragHandle />
-              </Box>
-            </Box>
-            {/* 删除按钮 - 默认隐藏，悬停时显示 */}
-            <IconButton
-              className="delete-button"
-              onClick={() => onDelete(note.id)}
-              sx={{ 
-                position: 'absolute', 
-                top: 8, 
-                right: 8,
-                opacity: 0, // 默认隐藏
-                transition: 'opacity 0.2s ease-in-out' // 添加过渡效果
-              }}
-            >
-              <DeleteIcon />
-            </IconButton>
-            {/* 笔记编辑器组件 */}
-            <NoteEditor
-              note={note}
-              isActive={activeNoteId === note.id}
-              onUpdate={onUpdate}
-              onFocus={onFocus}
-              onBlur={onBlur}
-              isEditing={editingNotes.has(note.id)}
-              onCreateNewNote={handleCreateNewNote}
-            />
-          </Paper>
-        </Box>
-      ))}
-
-      {/* 添加菜单组件 */}
       <Menu
         anchorEl={menuAnchorEl}
         open={Boolean(menuAnchorEl)}

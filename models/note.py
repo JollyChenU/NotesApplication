@@ -12,19 +12,28 @@
 """
 
 from datetime import datetime
-from . import db
+from extensions import db  # 从extensions模块导入db，而不是从models
 
 class Note(db.Model):
-    """笔记模型类
-
-    用于表示单个笔记条目的数据模型。每个笔记都包含具体内容、创建和更新时间、
-    显示顺序以及所属的笔记文件ID。
-    """
-
+    """笔记内容模型，表示单个笔记条目的内容和格式"""
+    __tablename__ = 'notes'
+    
     id = db.Column(db.Integer, primary_key=True)  # 笔记的唯一标识符
-    content = db.Column(db.Text, nullable=False)  # 笔记内容
-    format = db.Column(db.String(20), default='text')  # 笔记的格式（text, h1, h2, h3, bullet, number, quote, highlight）
+    content = db.Column(db.Text)  # 笔记内容
+    format = db.Column(db.String(20), default='text')  # 笔记格式，如text、h1、h2等
+    order = db.Column(db.Integer, default=0)  # 笔记在文件中的顺序
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # 创建时间
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # 更新时间
-    order = db.Column(db.Integer, default=0)  # 笔记在文件中的显示顺序
-    file_id = db.Column(db.Integer, db.ForeignKey('note_file.id'), nullable=False)  # 所属笔记文件的ID
+    file_id = db.Column(db.Integer, db.ForeignKey('note_files.id', ondelete='CASCADE'))  # 所属文件ID
+
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'content': self.content,
+            'format': self.format,
+            'order': self.order,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'file_id': self.file_id
+        }
