@@ -12,6 +12,7 @@
 1. [前端页面空白问题](#1-前端页面空白问题)
 2. [React-Markdown渲染行内代码崩溃问题](#2-react-markdown渲染行内代码崩溃问题)
 3. [方向键在笔记块间移动失效问题](#3-方向键在笔记块间移动失效问题)
+4. [拖拽文件后侧边栏文件无法点击问题](#4-拖拽文件后侧边栏文件无法点击问题)
 
 ## 1. 前端页面空白问题
 
@@ -214,3 +215,173 @@ if (targetNoteId === currentId) {
 - [JavaScript Map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map)
 - [DOM操作最佳实践](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Client-side_web_APIs/Manipulating_documents)
 - [JavaScript事件处理](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener)
+
+## 4. 拖拽文件后侧边栏文件无法点击问题
+
+### 问题描述 Description
+在使用拖拽功能将文件移动到文件夹后，侧边栏中的文件列表变得无法点击，用户无法通过点击选择任何文件，导致整个侧边栏功能丧失，需要刷新页面才能恢复正常操作。
+
+### 现象表现 Symptoms
+- 拖拽文件完成后，鼠标悬停在文件上不会显示指针样式（光标仍为箭头）
+- 点击文件不会触发任何事件，文件无法被选中
+- 控制台没有显示明显错误，但拖拽过程有大量重复渲染日志
+- 观察DOM可以发现文件元素的事件监听器似乎失效
+
+### 原因分析 Root Cause
+问题主要出在 `dnd-utils.jsx` 文件的拖拽实现中，具有以下几个关键问题：
+
+1. **拖拽状态清理不完整**：拖拽操作结束后，部分样式和状态没有被正确清理，特别是 `pointerEvents` 样式属性被设置为 `'none'` 后没有恢复为原始值。
+   
+2. **CSS样式残留**：全局注入的CSS样式修改了元素的 `overflow` 和 `z-index` 属性，影响了正常的交互行为。
+   
+3. **缺少安全机制**：当拖拽过程发生异常时，没有机制确保状态能被正确重置。
+   
+4. **事件处理中的状态管理**：在拖拽结束时，React状态（如`activeFileId`和`hoverFolderId`）被清除，但DOM元素的样式没有完全恢复。
+
+### 代码修改 Code Changes
+
+#### 1. 实现全面清理函数
+
+```jsx
+// 在dnd-utils.jsx中添加全面的清理函数
+const cleanupDragState = React.useCallback(() => {
+  Logger.info('执行拖拽状态全面清理');
+  
+  // 重置状态
+  setIsDragging(false);
+  setDragStartTime(null);
+  setActiveFileId(null);
+  setHoverFolderId(null);
+  
+  // 清除所有文件夹高亮
+  clearAllFolderHighlights();
+  
+  // 清除所有data-dragging属性
+  document.querySelectorAll('[data-dragging="true"]').forEach(el => {
+    el.setAttribute('data-dragging', 'false');
+  });
+  
+  // 重置所有sortable-file-item样式
+  document.querySelectorAll('.sortable-file-item').forEach(el => {
+    el.style.opacity = '';
+    el.style.border = '';
+    el.style.zIndex = '';
+    el.style.pointerEvents = ''; // 关键修复点
+    el.style.position = 'relative';
+    el.style.transform = '';
+    el.style.boxShadow = '';
+    el.classList.remove('is-dragging');
+  });
+  
+  // 修复MUI组件
+  document.querySelectorAll('.MuiListItem-root').forEach(el => {
+    el.style.pointerEvents = '';
+    el.style.cursor = '';
+  });
+  
+  // 确保所有元素都可以点击
+  document.querySelectorAll('.MuiListItem-button').forEach(el => {
+    el.style.pointerEvents = 'auto';
+  });
+  
+  // 重置任何可能残留的拖拽容器
+  const dragOverlay = document.querySelector('[data-dnd-overlay="true"]');
+  if (dragOverlay) {
+    dragOverlay.remove();
+  }
+  
+  // 强制释放文档上的所有鼠标事件处理器
+  document.body.style.userSelect = '';
+  document.body.style.webkitUserSelect = '';
+  document.body.style.cursor = '';
+}, [clearAllFolderHighlights]);
+```
+
+#### 2. 修改CSS样式注入
+
+```jsx
+// 修改前的全局样式
+{activeFileId && (
+  <style>{`
+    [id^="folder-content-"] {
+      overflow: hidden !important; /* 问题所在 */
+      position: relative !important;
+      min-height: 20px !重要;
+      contain: paint !important; /* 限制绘制边界 */
+    }
+    // ...其他样式
+  `}</style>
+)}
+
+// 修改后的全局样式
+{activeFileId && (
+  <style>{`
+    [id^="folder-content-"] {
+      overflow: visible !important; /* 允许元素溢出以避免裁剪问题 */
+      position: relative !important;
+      min-height: 20px !important;
+      z-index: auto !important; /* 确保z-index不干扰正常交互 */
+    }
+    // ...其他样式
+  `}</style>
+)}
+```
+
+#### 3. 添加安全超时机制
+
+```jsx
+// 额外的安全保障：如果拖拽超过10秒没有结束，强制清理
+React.useEffect(() => {
+  if (!isDragging || !dragStartTime) return;
+  
+  const timer = setTimeout(() => {
+    const dragDuration = Date.now() - dragStartTime;
+    if (dragDuration > 10000) { // 10秒超时
+      Logger.warn('拖拽操作超时，强制清理');
+      cleanupDragState();
+    }
+  }, 10000);
+  
+  return () => clearTimeout(timer);
+}, [isDragging, dragStartTime, cleanupDragState]);
+```
+
+#### 4. 在Sidebar组件中添加额外保障措施
+
+```jsx
+// 为解决文件不可点击的问题，确保所有指针事件正常工作
+React.useEffect(() => {
+  // 确保在拖拽结束后重置所有可能的状态
+  if (!isFileDragging && draggingFileId === null) {
+    const fileItems = document.querySelectorAll('[data-file-item="true"]');
+    fileItems.forEach(item => {
+      item.style.pointerEvents = 'auto';
+      const parent = item.parentElement;
+      if (parent) {
+        parent.style.pointerEvents = 'auto';
+      }
+    });
+  }
+}, [isFileDragging, draggingFileId]);
+```
+
+### 解决方案 Solution
+1. 实现全面的拖拽状态清理函数，确保所有与拖拽相关的DOM元素样式被彻底重置
+2. 修改全局注入的CSS样式，避免影响正常的交互行为
+3. 添加拖拽超时安全机制，防止拖拽状态永久锁定
+4. 在Sidebar组件中添加额外的保障措施，确保文件项可点击
+5. 优化事件处理和日志系统，便于追踪和调试类似问题
+
+### 预防措施 Prevention
+1. 实现结构化的日志系统，根据不同级别记录事件，便于排查问题
+2. 在拖拽操作完成后，确保调用完整的清理函数
+3. 为所有操作设置适当的超时机制，防止状态锁定
+4. 使用节流函数处理高频事件（如鼠标移动），提高性能
+5. 在DOM操作中始终确保恢复原始样式和状态
+
+### 相关文档 References
+- [@dnd-kit 文档](https://docs.dndkit.com/)
+- [React事件系统](https://legacy.reactjs.org/docs/events.html)
+- [CSS pointer-events 属性](https://developer.mozilla.org/en-US/docs/Web/CSS/pointer-events)
+- [JavaScript防抖与节流](https://developer.mozilla.org/en-US/docs/Web/API/Document/scroll_event#scroll_event_throttling)
+- [React useCallback Hook](https://reactjs.org/docs/hooks-reference.html#usecallback)

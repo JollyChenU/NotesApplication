@@ -279,54 +279,124 @@ function App() {
     try {
       console.log('执行文件移动操作:', { fileId, folderId });
       
-      // 确保folderId是正确的格式
-      // 如果folderId是字符串'null'或空字符串，则将其转换为null
-      const normalizedFolderId = folderId === 'null' || folderId === '' ? null : 
-                               // 否则尝试将其转换为整数
-                               Number.isNaN(Number(folderId)) ? folderId : Number(folderId);
+      // 确保fileId是字符串类型
+      const fileIdStr = String(fileId);
       
-      console.log('规范化后的folderId:', normalizedFolderId);
+      // 规范化folderId处理 - 修复根目录与文件夹判断
+      // 1. null/'null'/0/'0'/'' -> null (表示根目录)
+      // 2. 数字ID或字符串ID -> 保持原样 (表示文件夹)
+      let normalizedFolderId = folderId;
+      const rootIndicators = [null, undefined, 'null', '0', 0, ''];
+      
+      if (rootIndicators.includes(folderId)) {
+        normalizedFolderId = null;
+        console.log('规范化: folderId值被视为根目录标识', folderId, '→', normalizedFolderId);
+      } else if (!isNaN(Number(folderId))) {
+        // 如果是有效的数字ID则转换为数字类型
+        normalizedFolderId = Number(folderId);
+      }
+      
+      console.log('规范化后的folderId:', normalizedFolderId, '(类型:', typeof normalizedFolderId, ')');
       
       // 记录移动前的文件状态
-      const fileBeforeMove = files.find(f => f.id === fileId);
+      const fileBeforeMove = files.find(f => String(f.id) === fileIdStr);
+      
+      if (!fileBeforeMove) {
+        console.error(`找不到ID为${fileIdStr}的文件`);
+        return;
+      }
+      
       console.log('移动前的文件状态:', fileBeforeMove);
       
-      await noteService.updateFile(fileId, { folderId: normalizedFolderId });
+      // 改进的根目录判断 - 统一处理根目录标识
+      const isSourceRoot = rootIndicators.includes(fileBeforeMove.folder_id);
+      const isTargetRoot = normalizedFolderId === null;
+      
+      // 日志记录源和目标状态
+      console.log('源文件夹状态:', {
+        原始值: fileBeforeMove.folder_id,
+        类型: typeof fileBeforeMove.folder_id,
+        是否为根目录: isSourceRoot
+      });
+      
+      console.log('目标文件夹状态:', {
+        原始值: folderId,
+        规范化值: normalizedFolderId,
+        类型: typeof normalizedFolderId,
+        是否为根目录: isTargetRoot
+      });
+      
+      // 正确判断文件是否已经在目标位置
+      const alreadyInPlace = (isSourceRoot && isTargetRoot) || 
+                            (!isSourceRoot && !isTargetRoot && String(fileBeforeMove.folder_id) === String(normalizedFolderId));
+      
+      if (alreadyInPlace) {
+        console.log('文件已经在目标位置，跳过移动', {
+          当前文件夹: fileBeforeMove.folder_id,
+          目标文件夹: normalizedFolderId,
+          文件: fileBeforeMove.name
+        });
+        return;
+      }
+      
+      // 添加更多的调试信息
+      console.log('开始移动文件:', { 
+        fileId: fileIdStr, 
+        原文件夹: fileBeforeMove.folder_id, 
+        目标文件夹: normalizedFolderId,
+        源是否为根目录: isSourceRoot,
+        目标是否为根目录: isTargetRoot
+      });
+      
+      try {
+        // 直接使用API调用前记录尝试
+        console.log(`尝试调用API: updateFile(${fileIdStr}, { folder_id: ${normalizedFolderId} })`);
+        await noteService.updateFile(fileIdStr, { folder_id: normalizedFolderId });
+        console.log('API调用成功');
+      } catch (apiError) {
+        console.error('API调用失败', apiError);
+        setErrorMessage('API错误: 移动文件失败，请查看控制台');
+        return;
+      }
       
       // 立即更新本地状态，确保UI立即反映变化
       setFiles(prevFiles => {
+        console.log('更新前的文件列表:', prevFiles.length);
         const updatedFiles = prevFiles.map(file => 
-          file.id === fileId ? { ...file, folderId: normalizedFolderId } : file
+          String(file.id) === fileIdStr ? { ...file, folder_id: normalizedFolderId } : file
         );
-        console.log('本地状态更新后的文件:', updatedFiles.find(f => f.id === fileId));
+        console.log('本地状态更新后的文件:', updatedFiles.find(f => String(f.id) === fileIdStr));
+        console.log('更新后的文件列表:', updatedFiles.length);
         return updatedFiles;
       });
       
       // 如果文件被移动到了文件夹中，确保该文件夹是展开的
-      if (normalizedFolderId !== null) {
+      if (!isTargetRoot) {
         // 通知Sidebar组件展开对应的文件夹
         console.log('触发展开文件夹事件:', normalizedFolderId);
-        document.dispatchEvent(new CustomEvent('expandFolder', { 
-          detail: { folderId: normalizedFolderId },
-          bubbles: true, // 确保事件冒泡
-          cancelable: true // 允许事件被取消
-        }));
-        
-        // 添加延迟，确保DOM更新后再次触发展开事件
         setTimeout(() => {
-          console.log('延迟触发展开文件夹事件:', normalizedFolderId);
-          document.dispatchEvent(new CustomEvent('expandFolder', { 
-            detail: { folderId: normalizedFolderId },
-            bubbles: true,
-            cancelable: true
-          }));
+          try {
+            document.dispatchEvent(new CustomEvent('expandFolder', { 
+              detail: { folderId: normalizedFolderId },
+              bubbles: true,
+              cancelable: true
+            }));
+            console.log('文件夹展开事件已触发');
+          } catch (eventError) {
+            console.error('触发文件夹展开事件失败:', eventError);
+          }
         }, 100);
       }
       
       // 然后再从服务器刷新文件列表，确保数据同步
-      const updatedFiles = await noteService.getAllFiles();
-      console.log('从服务器获取的更新文件列表:', updatedFiles);
-      setFiles(updatedFiles);
+      try {
+        console.log('正在从服务器刷新文件列表...');
+        const updatedFiles = await noteService.getAllFiles();
+        console.log('从服务器获取的更新文件列表:', updatedFiles);
+        setFiles(updatedFiles);
+      } catch (refreshError) {
+        console.error('刷新文件列表失败:', refreshError);
+      }
       
       // 添加成功提示
       console.log('文件已成功移动到文件夹');

@@ -16,7 +16,65 @@ import {
   horizontalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { restrictToParentElement } from '@dnd-kit/modifiers';
+import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
+
+// 日志级别控制
+const LOG_LEVEL = {
+  DEBUG: 0,   // 详细调试日志
+  INFO: 1,    // 普通信息日志
+  WARN: 2,    // 警告信息
+  ERROR: 3,   // 错误信息
+  NONE: 4     // 禁用所有日志
+};
+
+// 设置当前日志级别
+const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG; // 临时设置为DEBUG以便追踪问题
+
+// 记录性能指标
+const PERF_METRICS = {};
+
+// 结构化日志函数
+const Logger = {
+  debug: (message, data) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.DEBUG) {
+      console.debug(`[DND|Debug] ${message}`, data || '');
+    }
+  },
+  
+  info: (message, data) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.INFO) {
+      console.log(`[DND|Info] ${message}`, data || '');
+    }
+  },
+  
+  warn: (message, data) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.WARN) {
+      console.warn(`[DND|Warn] ${message}`, data || '');
+    }
+  },
+  
+  error: (message, error) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.ERROR) {
+      console.error(`[DND|Error] ${message}`, error || '');
+    }
+  },
+  
+  // 开始性能测量
+  startPerf: (label) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.DEBUG) {
+      PERF_METRICS[label] = performance.now();
+    }
+  },
+  
+  // 结束性能测量并输出结果
+  endPerf: (label) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.DEBUG && PERF_METRICS[label]) {
+      const duration = performance.now() - PERF_METRICS[label];
+      console.debug(`[DND|Perf] ${label}: ${duration.toFixed(2)}ms`);
+      delete PERF_METRICS[label];
+    }
+  }
+};
 
 /**
  * 创建一个可排序项组件
@@ -34,16 +92,32 @@ export function createSortableItem(ItemComponent) {
       isDragging
     } = useSortable({ id });
     
+    // 获取当前文件的folder_id
+    const currentFolderId = props.file?.folder_id;
+    
+    // 计算实际样式，包含改进的定位逻辑
     const style = {
       transform: CSS.Transform.toString(transform),
       transition,
       opacity: isDragging ? 0.5 : 1,
       position: 'relative',
       zIndex: isDragging ? 999 : 'auto',
+      pointerEvents: isDragging ? 'none' : 'auto',
+      boxShadow: isDragging ? '0 4px 8px rgba(0,0,0,0.1)' : 'none',
     };
     
+    // 渲染组件，提供正确的属性
     return (
-      <div ref={setNodeRef} style={style} {...attributes}>
+      <div 
+        ref={setNodeRef} 
+        style={style} 
+        {...attributes}
+        data-file-original-folder={currentFolderId || 'root'}
+        data-sortable-item="true"
+        data-dragging={isDragging ? 'true' : 'false'}
+        data-file-id={id}
+        className={`sortable-file-item ${isDragging ? 'is-dragging' : ''} ${currentFolderId ? 'folder-item-' + currentFolderId : 'root-file-item'}`}
+      >
         <ItemComponent 
           {...props}
           draggable={true}
@@ -108,6 +182,17 @@ export function NoteDndContext({ items, onReorder, children, direction = 'vertic
  * 文件夹拖放容器组件
  */
 export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
+  // 添加状态来追踪当前活动的文件项和悬停的文件夹
+  const [activeFileId, setActiveFileId] = React.useState(null);
+  const [hoverFolderId, setHoverFolderId] = React.useState(null);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [dragStartTime, setDragStartTime] = React.useState(null);
+  const [lastCleanupTime, setLastCleanupTime] = React.useState(null);
+  
+  // 使用useRef来跟踪DOM元素和元素状态
+  const draggedElementRef = React.useRef(null);
+  const folderElementsRef = React.useRef([]);
+  
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -121,8 +206,63 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
     })
   );
   
+  // 清除所有文件夹元素的高亮状态
+  const clearAllFolderHighlights = React.useCallback(() => {
+    const allFolderElements = document.querySelectorAll('[data-is-folder="true"], [data-folder-id]');
+    allFolderElements.forEach(el => {
+      el.style.backgroundColor = '';
+      el.style.boxShadow = '';
+      el.style.border = '';
+    });
+    Logger.debug('清除所有文件夹高亮');
+  }, []);
+  
+  // 高亮指定的文件夹元素
+  const highlightFolderElement = React.useCallback((folderId, isHeader = false) => {
+    if (!folderId) return;
+    
+    // 清除所有高亮
+    clearAllFolderHighlights();
+    
+    // 获取文件夹头部元素和内容区域元素
+    const folderHeader = document.querySelector(`#folder-${folderId}`);
+    const folderContent = document.querySelector(`#folder-content-${folderId}`);
+    
+    // 判断文件夹是否展开
+    const isFolderExpanded = folderContent && 
+      window.getComputedStyle(folderContent).display !== 'none';
+    
+    // 如果只需要高亮头部或文件夹处于折叠状态
+    if (isHeader || !isFolderExpanded) {
+      if (folderHeader) {
+        folderHeader.style.backgroundColor = 'rgba(63, 81, 181, 0.15)';
+        folderHeader.style.boxShadow = 'inset 0 0 8px rgba(63, 81, 181, 0.3)';
+        folderHeader.style.border = '1px dashed rgba(63, 81, 181, 0.7)';
+      }
+    } 
+    // 文件夹展开状态，高亮整个文件夹区域（包括头部和内容）
+    else {
+      if (folderHeader) {
+        folderHeader.style.backgroundColor = 'rgba(63, 81, 181, 0.1)';
+        folderHeader.style.border = '1px dashed rgba(63, 81, 181, 0.7)';
+      }
+      
+      if (folderContent) {
+        folderContent.style.backgroundColor = 'rgba(63, 81, 181, 0.08)';
+        folderContent.style.border = '1px dashed rgba(63, 81, 181, 0.4)';
+        folderContent.style.borderTop = 'none'; // 避免与头部边框重叠
+      }
+    }
+    
+    // 设置状态
+    setHoverFolderId(folderId);
+    Logger.debug(`高亮文件夹: ${folderId}, 是否仅头部: ${isHeader}, 是否展开: ${isFolderExpanded}`);
+  }, [clearAllFolderHighlights]);
+  
   // 添加自定义属性，确保文件夹元素能被正确识别
   React.useEffect(() => {
+    Logger.debug('初始化文件夹元素识别');
+    
     // 增强文件夹元素识别 - 使用更广泛的选择器
     const setupFolderElements = () => {
       // 为所有文件夹元素添加dataset属性 - 使用多种选择器确保捕获所有可能的文件夹元素
@@ -130,7 +270,9 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
         '[id^="folder-"], [data-droppable-id^="folder-"], [id*="folder-content"], [class*="folder"]'
       );
       
-      console.log('找到潜在文件夹元素数量:', folderElements.length);
+      Logger.debug(`识别到 ${folderElements.length} 个潜在文件夹元素`);
+      
+      folderElementsRef.current = Array.from(folderElements);
       
       folderElements.forEach(el => {
         // 确保dataset属性被正确设置
@@ -139,7 +281,7 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
           // 从ID中提取文件夹ID
           const folderId = el.id.replace('folder-', '');
           el.setAttribute('data-folder-id', folderId);
-          console.log('设置文件夹元素属性:', {id: el.id, folderId});
+          el.setAttribute('data-is-folder', 'true');
         }
         
         // 确保文件夹内容区域也有正确的属性
@@ -147,37 +289,50 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
           const folderId = el.id.replace('folder-content-', '');
           el.setAttribute('data-droppable-id', `folder-${folderId}`);
           el.setAttribute('data-folder-id', folderId);
-          console.log('设置文件夹内容区域属性:', {id: el.id, folderId});
+          el.setAttribute('data-is-folder', 'true');
         }
         
         // 确保data-folder-id属性被正确设置
         if (el.getAttribute('data-droppable-id') && !el.getAttribute('data-folder-id')) {
           const folderId = el.getAttribute('data-droppable-id').replace('folder-', '');
           el.setAttribute('data-folder-id', folderId);
-          console.log('设置缺失的data-folder-id属性:', {droppableId: el.getAttribute('data-droppable-id'), folderId});
+          el.setAttribute('data-is-folder', 'true');
         }
         
-        // 为所有文件夹相关元素添加视觉指示
+        // 为所有文件夹相关元素添加视觉指示和事件处理
         if (el.getAttribute('data-folder-id') || (el.id && (el.id.startsWith('folder-') || el.id.includes('folder-content')))) {
           // 添加一个微妙的视觉指示，表明这是可拖放区域
           el.style.transition = 'all 0.2s ease-in-out';
           
-          // 添加事件监听器以提供拖放反馈
-          el.addEventListener('dragover', (e) => {
+          // 标记文件夹元素
+          el.setAttribute('data-is-folder', 'true');
+          
+          // 移除旧的事件监听器(如果存在)
+          el.removeEventListener('dragover', el._dragover);
+          el.removeEventListener('dragleave', el._dragleave);
+          el.removeEventListener('drop', el._drop);
+          
+          // 添加新的事件监听器
+          el._dragover = (e) => {
             e.preventDefault();
-            el.style.backgroundColor = 'rgba(63, 81, 181, 0.15)';
-            el.style.boxShadow = 'inset 0 0 5px rgba(63, 81, 181, 0.3)';
-          });
+            const folderId = el.getAttribute('data-folder-id');
+            if (folderId) {
+              highlightFolderElement(folderId);
+            }
+          };
           
-          el.addEventListener('dragleave', () => {
-            el.style.backgroundColor = '';
-            el.style.boxShadow = '';
-          });
+          el._dragleave = () => {
+            // 不会立即清除高亮，而是在下一个高亮设置时清除
+          };
           
-          el.addEventListener('drop', () => {
-            el.style.backgroundColor = '';
-            el.style.boxShadow = '';
-          });
+          el._drop = () => {
+            clearAllFolderHighlights();
+            setHoverFolderId(null);
+          };
+          
+          el.addEventListener('dragover', el._dragover);
+          el.addEventListener('dragleave', el._dragleave);
+          el.addEventListener('drop', el._drop);
         }
       });
     };
@@ -203,7 +358,7 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       });
       
       if (needsUpdate) {
-        console.log('检测到DOM变化，更新文件夹元素属性');
+        Logger.debug('检测到DOM变化，更新文件夹元素属性');
         setupFolderElements();
       }
     });
@@ -211,592 +366,420 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
     // 开始观察整个文档
     observer.observe(document.body, { childList: true, subtree: true });
     
+    // 节流函数：限制函数执行频率
+    const throttle = (func, limit) => {
+      let inThrottle;
+      let lastResult;
+      return function(...args) {
+        if (!inThrottle) {
+          lastResult = func.apply(this, args);
+          inThrottle = true;
+          setTimeout(() => inThrottle = false, limit);
+        }
+        return lastResult;
+      };
+    };
+    
+    // 使用节流函数包装mouseMoveHandler，限制执行频率为100ms一次
+    const mouseMoveHandler = throttle((e) => {
+      if (!activeFileId) return;
+      
+      // 获取鼠标下的元素
+      const elementsAtPoint = document.elementsFromPoint(e.clientX, e.clientY);
+      
+      // 查找文件夹元素
+      const folderElement = elementsAtPoint.find(el => 
+        el.getAttribute('data-is-folder') === 'true' || 
+        el.getAttribute('data-folder-id')
+      );
+      
+      if (folderElement) {
+        const folderId = folderElement.getAttribute('data-folder-id');
+        if (folderId && folderId !== hoverFolderId) { // 仅在文件夹ID变化时更新高亮
+          highlightFolderElement(folderId);
+        }
+      } else {
+        // 如果不在文件夹上方，清除高亮
+        if (hoverFolderId) {
+          clearAllFolderHighlights();
+          setHoverFolderId(null);
+        }
+      }
+    }, 100); // 100ms节流
+    
+    window.addEventListener('mousemove', mouseMoveHandler);
+    
     // 清理函数
-    return () => observer.disconnect();
-  }, []);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('mousemove', mouseMoveHandler);
+      Logger.debug('文件夹元素识别清理完成');
+    };
+  }, [activeFileId, hoverFolderId, highlightFolderElement, clearAllFolderHighlights]);
   
-  const handleDragEnd = (event) => {
+  // 清理所有拖拽相关的样式和状态
+  const cleanupDragState = React.useCallback(() => {
+    Logger.info('执行拖拽状态全面清理');
+    
+    // 记录清理时间
+    const now = Date.now();
+    setLastCleanupTime(now);
+    
+    // 重置状态
+    setIsDragging(false);
+    setDragStartTime(null);
+    setActiveFileId(null);
+    setHoverFolderId(null);
+    
+    // 清除所有文件夹高亮
+    clearAllFolderHighlights();
+    
+    // 清除所有data-dragging属性
+    document.querySelectorAll('[data-dragging="true"]').forEach(el => {
+      el.setAttribute('data-dragging', 'false');
+    });
+    
+    // 重置所有sortable-file-item样式
+    document.querySelectorAll('.sortable-file-item').forEach(el => {
+      el.style.opacity = '';
+      el.style.border = '';
+      el.style.zIndex = '';
+      el.style.pointerEvents = '';
+      el.style.position = 'relative';
+      el.style.transform = '';
+      el.style.boxShadow = '';
+      el.classList.remove('is-dragging');
+    });
+    
+    // 修复MUI组件
+    document.querySelectorAll('.MuiListItem-root').forEach(el => {
+      el.style.pointerEvents = '';
+      el.style.cursor = '';
+    });
+    
+    // 确保所有元素都可以点击
+    document.querySelectorAll('.MuiListItem-button').forEach(el => {
+      el.style.pointerEvents = 'auto';
+    });
+    
+    // 重置任何可能残留的拖拽容器
+    const dragOverlay = document.querySelector('[data-dnd-overlay="true"]');
+    if (dragOverlay) {
+      dragOverlay.remove();
+    }
+    
+    // 强制释放文档上的所有鼠标事件处理器
+    document.body.style.userSelect = '';
+    document.body.style.webkitUserSelect = '';
+    document.body.style.cursor = '';
+    
+    Logger.debug('拖拽状态清理完成');
+  }, [clearAllFolderHighlights]);
+  
+  // 处理拖拽开始
+  const handleDragStart = (event) => {
+    const { active } = event;
+    
+    Logger.startPerf('dragOperation');
+    setDragStartTime(Date.now());
+    setIsDragging(true);
+    setActiveFileId(String(active.id));
+    
+    Logger.info(`开始拖拽文件: ${active.id}`);
+    
+    // 添加显著的拖拽开始视觉反馈
+    const draggedElement = document.querySelector(`[data-file-id="${active.id}"]`);
+    if (draggedElement) {
+      draggedElementRef.current = draggedElement;
+      draggedElement.style.opacity = "0.6";
+      draggedElement.style.border = "2px dashed #3f51b5";
+      draggedElement.style.zIndex = "1000";
+    }
+  };
+  
+  // 处理拖拽过程中
+  const handleDragOver = (event) => {
     const { active, over } = event;
     
+    // 如果没有悬停目标，则不处理
     if (!over) return;
     
-    // 1. 拖放开始时记录当前拖拽的文件ID和类型
-    console.log('拖放结束事件开始处理:', {
-      activeId: active?.id,
-      activeType: active?.data?.current?.type || '文件', // 添加类型信息
-      overId: over?.id,
-      overType: typeof over.id,
-      isOverIdFolder: String(over.id).startsWith('folder-'),
-      dragTime: new Date().toISOString()
-    });
+    // 获取鼠标下的元素
+    const elementsAtPoint = document.elementsFromPoint(event.clientX, event.clientY);
     
-    // 移动到文件夹 - 处理直接拖放到文件夹ID上的情况
-    if (String(over.id).startsWith('folder-')) {
-      const folderId = String(over.id).replace('folder-', '');
-      console.log('直接拖放到文件夹ID上:', {fileId: String(active.id), folderId});
-      // 确保调用onMoveToFolder函数并传递正确的参数
-      onMoveToFolder(String(active.id), folderId);
-      // 强制触发一次DOM更新，确保UI状态正确重置
-      setTimeout(() => {
-        document.body.click(); // 模拟一次点击，帮助重置拖拽状态
-      }, 50);
-      return;
-    }
+    // 查找文件夹元素
+    const folderElement = elementsAtPoint.find(el => 
+      el.getAttribute('data-is-folder') === 'true' || 
+      el.getAttribute('data-folder-id')
+    );
     
-    // 检查over对象的data属性是否包含文件夹信息
-    if (over.data && over.data.current && over.data.current.sortable && 
-        over.data.current.sortable.containerId && 
-        String(over.data.current.sortable.containerId).startsWith('folder-')) {
-      const folderId = String(over.data.current.sortable.containerId).replace('folder-', '');
-      console.log('从over对象的sortable数据中识别到文件夹:', {fileId: String(active.id), folderId});
-      onMoveToFolder(String(active.id), folderId);
-      return;
-    }
-    
-    // 即使activeId和overId相同，也继续检查是否拖放到了文件夹上
-    // 这解决了将文件拖放到同一位置但实际是文件夹的情况
-    
-    // 检查是否拖放到了带有data-droppable-id属性的元素上
-    // 使用已经声明的鼠标位置变量，避免重复声明
-    
-    // 修复：使用最终事件的鼠标位置
-    // DnD Kit在拖放结束时可能会使用不同的事件对象
-    // 增加更多位置获取方式，提高准确性
-    // 声明mouseX和mouseY变量，用于存储鼠标位置
-    const mouseX = (event.over?.rect?.left + event.over?.rect?.width / 2) || 
-                  (event.collisions && event.collisions[0]?.data?.droppableContainer?.rect?.left) || 0;
-    const mouseY = (event.over?.rect?.top + event.over?.rect?.height / 2) || 
-                  (event.collisions && event.collisions[0]?.data?.droppableContainer?.rect?.top) || 0;
-    
-    // 使用mouseX和mouseY变量
-    const finalMouseX = mouseX;
-    const finalMouseY = mouseY;
-    
-    // 3. 添加鼠标位置的上下文信息
-    console.log('拖放位置详细信息:', {
-      mousePosition: { x: finalMouseX, y: finalMouseY },
-      viewportSize: { width: window.innerWidth, height: window.innerHeight },
-      relativePosition: { 
-        x: Math.round((finalMouseX / window.innerWidth) * 100) + '%', 
-        y: Math.round((finalMouseY / window.innerHeight) * 100) + '%'
+    if (folderElement) {
+      const folderId = folderElement.getAttribute('data-folder-id');
+      if (folderId && folderId !== hoverFolderId) { // 仅在文件夹ID变化时更新高亮
+        highlightFolderElement(folderId);
       }
-    });
-                      
-    // 如果over对象存在且ID以folder-开头，直接处理
-    if (over && String(over.id).startsWith('folder-')) {
-      const folderId = String(over.id).replace('folder-', '');
-      console.log('直接从over对象识别到文件夹:', {fileId: String(active.id), folderId});
-      onMoveToFolder(String(active.id), folderId);
-      return;
-    }
-    
-    // 特殊处理：如果activeId和overId相同，检查鼠标下方是否有文件夹元素
-    if (active.id === over.id) {
-      console.log('检测到拖放到相同元素:', { id: active.id, mousePos: { x: finalMouseX, y: finalMouseY } });
-      // 直接获取鼠标位置下的元素
-      const elementsUnderMouse = document.elementsFromPoint(finalMouseX, finalMouseY);
-      
-      // 查找文件夹元素
-      const folderEl = elementsUnderMouse.find(el => {
-        return (el.getAttribute && el.getAttribute('data-is-folder') === 'true') || 
-               (el.id && el.id.startsWith('folder-')) || 
-               (el.getAttribute && el.getAttribute('data-folder-id'));
-      });
-      
-      if (folderEl) {
-        let folderId;
-        if (folderEl.getAttribute('data-folder-id')) {
-          folderId = folderEl.getAttribute('data-folder-id');
-        } else if (folderEl.id && folderEl.id.startsWith('folder-')) {
-          folderId = folderEl.id.replace('folder-', '');
-        } else if (folderEl.getAttribute('data-droppable-id') && 
-                  folderEl.getAttribute('data-droppable-id').startsWith('folder-')) {
-          folderId = folderEl.getAttribute('data-droppable-id').replace('folder-', '');
-        }
-        
-        if (folderId) {
-          console.log('在相同ID情况下找到文件夹元素:', { fileId: String(active.id), folderId });
-          onMoveToFolder(String(active.id), folderId);
-          return;
-        }
-      }
-    }
-    
-    console.log('拖放结束事件信息:', {
-      eventType: event.type,
-      active: event.active?.id,
-      over: event.over?.id,
-      mousePosition: { x: finalMouseX, y: finalMouseY },
-      hasCollisions: Boolean(event.collisions && event.collisions.length)
-    });
-    
-    const elementsAtPoint = document.elementsFromPoint(finalMouseX, finalMouseY);
-    
-    // 查找拖放点下的所有元素中是否有文件夹
-    // 修复：检查所有可能的文件夹标识方式，并增强调试信息
-    console.log('拖放检测 - 元素列表:', elementsAtPoint.map(el => el.tagName + (el.id ? '#'+el.id : '')));
-    
-    // 直接检查over对象是否包含文件夹信息
-    if (over && over.data && over.data.current && over.data.current.droppableId && 
-        String(over.data.current.droppableId).startsWith('folder-')) {
-      const folderId = String(over.data.current.droppableId).replace('folder-', '');
-      console.log('从over对象数据中识别到文件夹:', {fileId: String(active.id), folderId});
-      onMoveToFolder(String(active.id), folderId);
-      return;
-    }
-    
-    // 检查是否拖放到了带有data-droppable-id属性的元素上
-    // 使用已经声明的鼠标位置变量，避免重复声明
-    
-    // 如果over对象存在且ID以folder-开头，直接处理
-    if (over && String(over.id).startsWith('folder-')) {
-      const folderId = String(over.id).replace('folder-', '');
-      console.log('直接从over对象识别到文件夹:', {fileId: String(active.id), folderId});
-      onMoveToFolder(String(active.id), folderId);
-      return;
-    }
-    
-    // 特殊处理：如果activeId和overId相同，检查鼠标下方是否有文件夹元素
-    if (active.id === over.id) {
-      console.log('检测到拖放到相同元素:', { id: active.id, mousePos: { x: finalMouseX, y: finalMouseY } });
-      // 直接获取鼠标位置下的元素
-      const elementsUnderMouse = document.elementsFromPoint(finalMouseX, finalMouseY);
-      
-      // 查找文件夹元素
-      const folderEl = elementsUnderMouse.find(el => {
-        return (el.getAttribute && el.getAttribute('data-is-folder') === 'true') || 
-               (el.id && el.id.startsWith('folder-')) || 
-               (el.getAttribute && el.getAttribute('data-folder-id'));
-      });
-      
-      if (folderEl) {
-        let folderId;
-        if (folderEl.getAttribute('data-folder-id')) {
-          folderId = folderEl.getAttribute('data-folder-id');
-        } else if (folderEl.id && folderEl.id.startsWith('folder-')) {
-          folderId = folderEl.id.replace('folder-', '');
-        } else if (folderEl.getAttribute('data-droppable-id') && 
-                  folderEl.getAttribute('data-droppable-id').startsWith('folder-')) {
-          folderId = folderEl.getAttribute('data-droppable-id').replace('folder-', '');
-        }
-        
-        if (folderId) {
-          console.log('在相同ID情况下找到文件夹元素:', { fileId: String(active.id), folderId });
-          onMoveToFolder(String(active.id), folderId);
-          return;
-        }
-      }
-    }
-    
-    // 增强文件夹元素识别逻辑
-    let folderElement = null;
-    let folderId = null;
-    
-    console.log('开始增强文件夹元素识别...', {
-      draggedFileId: active?.id,
-      draggedFileType: active?.data?.current?.type || '文件',
-      targetTime: new Date().toISOString(),
-      elementsCount: elementsAtPoint.length
-    });
-    
-    // 第一步：尝试从elementsAtPoint中查找文件夹元素
-    for (const el of elementsAtPoint) {
-      // 2. 输出每个条件判断的详细结果和原始值
-      // 检查dataset.droppableId
-      const hasDatasetId = el.dataset && el.dataset.droppableId && el.dataset.droppableId.startsWith('folder-');
-      const datasetIdValue = el.dataset?.droppableId || 'undefined';
-      
-      // 检查id属性
-      const hasIdAttribute = el.id && el.id.startsWith('folder-');
-      const idValue = el.id || 'undefined';
-      
-      // 检查data-droppable-id属性（直接访问）
-      const hasDataAttribute = el.getAttribute && el.getAttribute('data-droppable-id') && 
-                              el.getAttribute('data-droppable-id').startsWith('folder-');
-      const dataAttributeValue = el.getAttribute ? el.getAttribute('data-droppable-id') : 'undefined';
-      
-      // 检查data-is-folder属性（直接标记）
-      const hasIsFolderAttribute = el.getAttribute && el.getAttribute('data-is-folder') === 'true';
-      const isFolderValue = el.getAttribute ? el.getAttribute('data-is-folder') : 'undefined';
-      
-      // 检查data-folder-id属性（直接标记）
-      const hasFolderIdAttribute = el.getAttribute && el.getAttribute('data-folder-id');
-      const folderIdValue = el.getAttribute ? el.getAttribute('data-folder-id') : 'undefined';
-      
-      // 检查class名称
-      const hasFolderClass = el.className && typeof el.className === 'string' && el.className.includes('folder');
-      const classNameValue = el.className || 'undefined';
-      
-      // 4. 输出完整的元素属性和数据集
-      console.log(`检查元素 ${el.tagName}#${el.id || 'no-id'} 是否为文件夹:`, {
-        条件结果: {
-          hasDatasetId,
-          hasIdAttribute,
-          hasDataAttribute,
-          hasIsFolderAttribute,
-          hasFolderIdAttribute,
-          hasFolderClass
-        },
-        原始值: {
-          datasetId: datasetIdValue,
-          id: idValue,
-          dataAttribute: dataAttributeValue,
-          isFolder: isFolderValue,
-          folderId: folderIdValue,
-          className: classNameValue
-        }
-      });
-      
-      if (hasDatasetId || hasIdAttribute || hasDataAttribute || hasIsFolderAttribute || hasFolderIdAttribute || hasFolderClass) {
-        folderElement = el;
-        
-        // 提取文件夹ID
-        if (hasDatasetId) {
-          folderId = el.dataset.droppableId.replace('folder-', '');
-        } else if (hasIdAttribute) {
-          folderId = el.id.replace('folder-', '');
-        } else if (hasDataAttribute) {
-          folderId = el.getAttribute('data-droppable-id').replace('folder-', '');
-        } else if (hasFolderIdAttribute) {
-          folderId = el.getAttribute('data-folder-id');
-        }
-        
-        // 5. 明确输出最终判断结果
-        console.log('找到文件夹元素:', {
-          element: el.tagName + (el.id ? '#'+el.id : ''),
-          folderId,
-          匹配条件: {
-            hasDatasetId,
-            hasIdAttribute,
-            hasDataAttribute,
-            hasIsFolderAttribute,
-            hasFolderIdAttribute,
-            hasFolderClass
-          },
-          elementRect: el.getBoundingClientRect ? {
-            top: Math.round(el.getBoundingClientRect().top),
-            left: Math.round(el.getBoundingClientRect().left),
-            width: Math.round(el.getBoundingClientRect().width),
-            height: Math.round(el.getBoundingClientRect().height)
-          } : 'N/A',
-          relativeToMouse: el.getBoundingClientRect ? {
-            x: Math.round(finalMouseX - el.getBoundingClientRect().left),
-            y: Math.round(finalMouseY - el.getBoundingClientRect().top)
-          } : 'N/A'
-        });
-        
-        break; // 找到第一个匹配的元素后停止
-      }
-    }
-    
-    // 如果没有找到，尝试查找所有包含folder字符串的元素
-    if (!folderElement) {
-      for (const el of elementsAtPoint) {
-        if ((el.id && el.id.includes('folder')) ||
-            (el.className && typeof el.className === 'string' && el.className.includes('folder'))) {
-          
-          // 尝试从id提取文件夹ID
-          if (el.id && el.id.includes('folder-')) {
-            const match = el.id.match(/folder-(\d+)/);
-            if (match && match[1]) {
-              folderElement = el;
-              folderId = match[1];
-              console.log('从ID中提取到文件夹ID:', folderId);
-              break;
-            }
-          }
-          
-          // 尝试从data-droppable-id属性提取
-          if (el.getAttribute && el.getAttribute('data-droppable-id') && 
-              el.getAttribute('data-droppable-id').includes('folder-')) {
-            const attrValue = el.getAttribute('data-droppable-id');
-            const match = attrValue.match(/folder-(\d+)/);
-            if (match && match[1]) {
-              folderElement = el;
-              folderId = match[1];
-              console.log('从data-droppable-id属性中提取到文件夹ID:', folderId);
-              break;
-            }
-          }
-        }
-      }
-    }
-    
-    // 增强调试信息，帮助排查问题
-    console.log('拖放检测:', {
-      // 限制输出数量，避免日志过多
-      elementsAtPoint: elementsAtPoint.slice(0, 5).map(el => ({
-        tagName: el.tagName,
-        id: el.id,
-        className: el.className,
-        dataset: el.dataset,
-        droppableId: el.dataset?.droppableId,
-        rect: el.getBoundingClientRect ? {
-          top: Math.round(el.getBoundingClientRect().top),
-          left: Math.round(el.getBoundingClientRect().left),
-          width: Math.round(el.getBoundingClientRect().width),
-          height: Math.round(el.getBoundingClientRect().height)
-        } : 'N/A',
-        attributes: el.getAttribute ? {
-          'data-droppable-id': el.getAttribute('data-droppable-id'),
-          'data-folder-id': el.getAttribute('data-folder-id'),
-          'data-is-folder': el.getAttribute('data-is-folder'),
-          'id': el.getAttribute('id')
-        } : 'N/A'
-      })),
-      elementsCount: elementsAtPoint.length,
-      mousePosition: { x: mouseX, y: mouseY },
-      folderElement: folderElement ? {
-        tagName: folderElement.tagName,
-        id: folderElement.id,
-        className: folderElement.className,
-        dataset: folderElement.dataset,
-        rect: folderElement.getBoundingClientRect ? {
-          top: Math.round(folderElement.getBoundingClientRect().top),
-          left: Math.round(folderElement.getBoundingClientRect().left),
-          width: Math.round(folderElement.getBoundingClientRect().width),
-          height: Math.round(folderElement.getBoundingClientRect().height)
-        } : 'N/A'
-      } : null
-    });
-    
-    // 如果没有找到文件夹元素，尝试更宽松的匹配
-    if (!folderElement) {
-      console.log('开始尝试更宽松的匹配...');
-      console.log('可用元素列表:', elementsAtPoint.map(el => ({
-        tagName: el.tagName,
-        id: el.id || 'no-id',
-        className: el.className || 'no-class',
-        dataAttributes: {
-          'data-folder-id': el.getAttribute ? el.getAttribute('data-folder-id') : 'N/A',
-          'data-droppable-id': el.getAttribute ? el.getAttribute('data-droppable-id') : 'N/A',
-          'data-folder-content': el.getAttribute ? el.getAttribute('data-folder-content') : 'N/A',
-          'data-is-folder': el.getAttribute ? el.getAttribute('data-is-folder') : 'N/A'
-        }
-      })));
-      
-      // 优先检查data-is-folder属性
-      if (!folderElement) {
-        console.log('尝试查找带有data-is-folder属性的元素...');
-        for (const el of elementsAtPoint) {
-          if (el.getAttribute && el.getAttribute('data-is-folder') === 'true') {
-            folderElement = el;
-            folderId = el.getAttribute('data-folder-id');
-            console.log('找到带有data-is-folder属性的文件夹元素:', {element: el.tagName, folderId});
-            break;
-          }
-        }
-      }
-      
-      // 如果没有找到文件夹元素，尝试查找所有包含folder-content的元素
-      if (!folderElement) {
-        console.log('尝试查找folder-content元素...');
-        for (const el of elementsAtPoint) {
-          if (el.id && el.id.includes('folder-content-')) {
-            const folderId = el.id.replace('folder-content-', '');
-            folderElement = el;
-            console.log('找到文件夹内容区域:', {id: el.id, folderId});
-            break;
-          }
-        }
-      }
-      
-      // 如果没有找到文件夹元素，尝试更宽松的匹配
-      if (!folderElement) {
-        console.log('未找到文件夹元素，尝试更宽松的匹配...');
-        
-        // 详细记录所有元素的属性
-        console.log('拖放位置的所有元素详细信息:');
-        elementsAtPoint.forEach((el, index) => {
-          console.log(`元素[${index}]:`, {
-            tagName: el.tagName,
-            id: el.id || 'no-id',
-            className: el.className || 'no-class',
-            dataFolderId: el.getAttribute ? el.getAttribute('data-folder-id') : 'N/A',
-            dataDroppableId: el.getAttribute ? el.getAttribute('data-droppable-id') : 'N/A',
-            dataFolderContent: el.getAttribute ? el.getAttribute('data-folder-content') : 'N/A',
-            hasFolder: el.id ? el.id.includes('folder') : false,
-            rect: el.getBoundingClientRect ? {
-              top: el.getBoundingClientRect().top,
-              left: el.getBoundingClientRect().left,
-              width: el.getBoundingClientRect().width,
-              height: el.getBoundingClientRect().height
-            } : 'N/A'
-          });
-        });
-        
-        // 尝试查找所有可能的文件夹相关元素
-        for (const el of elementsAtPoint) {
-          // 检查是否有任何与文件夹相关的类名或属性
-          const isFolder = (
-            (el.className && typeof el.className === 'string' && el.className.includes('folder')) ||
-            (el.getAttribute && el.getAttribute('data-folder-id')) ||
-            (el.getAttribute && el.getAttribute('data-droppable-id') && el.getAttribute('data-droppable-id').includes('folder-')) ||
-            (el.id && (el.id.includes('folder-') || el.id.includes('folder-content-')))
-          );
-          
-          console.log('检查元素是否为文件夹:', {
-            tagName: el.tagName,
-            id: el.id || 'no-id',
-            isFolder: isFolder,
-            条件1: el.className && typeof el.className === 'string' && el.className.includes('folder'),
-            条件2: el.getAttribute && el.getAttribute('data-folder-id'),
-            条件3: el.getAttribute && el.getAttribute('data-droppable-id') && el.getAttribute('data-droppable-id').includes('folder-'),
-            条件4: el.id && (el.id.includes('folder-') || el.id.includes('folder-content-'))
-          });
-          
-          if (isFolder) {
-            // 尝试从各种可能的属性中提取文件夹ID
-            let extractedId = null;
-            
-            // 从data-folder-id属性提取
-            if (el.getAttribute && el.getAttribute('data-folder-id')) {
-              extractedId = el.getAttribute('data-folder-id');
-              console.log('从data-folder-id提取ID:', extractedId);
-            }
-            // 从data-droppable-id属性提取
-            else if (el.getAttribute && el.getAttribute('data-droppable-id') && 
-                     el.getAttribute('data-droppable-id').includes('folder-')) {
-              extractedId = el.getAttribute('data-droppable-id').replace('folder-', '');
-              console.log('从data-droppable-id提取ID:', extractedId);
-            }
-            // 从id属性提取
-            else if (el.id) {
-              if (el.id.includes('folder-content-')) {
-                extractedId = el.id.replace('folder-content-', '');
-                console.log('从folder-content-id提取ID:', extractedId);
-              } else if (el.id.includes('folder-')) {
-                extractedId = el.id.replace('folder-', '');
-                console.log('从folder-id提取ID:', extractedId);
-              }
-            }
-            
-            if (extractedId) {
-              folderElement = el;
-              folderId = extractedId;
-              console.log('使用宽松匹配找到文件夹元素:', {
-                element: el.tagName + (el.id ? '#'+el.id : ''),
-                folderId,
-                source: 'relaxed-matching'
-              });
-              break;
-            } else {
-              console.log('元素符合文件夹条件但无法提取ID');
-            }
-          }
-        }
-        
-        if (!folderElement) {
-          console.log('未找到文件夹元素，尝试更宽松的匹配...');
-          console.log('DOM结构分析:', {
-            elementsCount: elementsAtPoint.length,
-            possibleFolderElements: elementsAtPoint.filter(el => 
-              (el.className && typeof el.className === 'string' && el.className.includes('folder')) ||
-              (el.id && el.id.includes('folder'))
-            ).map(el => ({
-              tagName: el.tagName,
-              id: el.id || 'no-id',
-              className: el.className || 'no-class',
-              attributes: el.getAttributeNames ? Array.from(el.getAttributeNames()).reduce((acc, name) => {
-                acc[name] = el.getAttribute(name);
-                return acc;
-              }, {}) : 'N/A'
-            }))
-          });
-        }
-      }
-    }
-    
-    // 如果找到了文件夹元素和文件夹ID
-    if (folderElement && folderId) {
-      // 确保folderId不为null或undefined
-      if (folderId === null || folderId === undefined) {
-        console.error('找到文件夹元素但folderId为空');
-        // 尝试从元素中再次提取folderId
-        if (folderElement.getAttribute && folderElement.getAttribute('data-folder-id')) {
-          folderId = folderElement.getAttribute('data-folder-id');
-          console.log('从元素属性中重新提取folderId:', folderId);
-        } else if (folderElement.id && folderElement.id.includes('folder-')) {
-          folderId = folderElement.id.replace(/folder-|folder-content-/g, '');
-          console.log('从元素ID中重新提取folderId:', folderId);
-        }
-      }
-      
-      // 再次检查folderId是否有效
-      if (!folderId) {
-        console.error('无法提取有效的文件夹ID');
-        return;
-      }
-      
-      // 尝试将folderId转换为数字
-      const numericFolderId = parseInt(folderId, 10);
-      // 如果转换成功且不是NaN，使用数字类型的folderId
-      if (!isNaN(numericFolderId)) {
-        folderId = numericFolderId;
-      }
-      
-      // 5. 明确输出最终判断结果和执行的操作
-      console.log('准备移动文件到文件夹:', {
-        fileId: String(active.id),
-        folderId,
-        folderElementType: folderElement.tagName,
-        folderElementId: folderElement.id || 'no-id',
-        操作类型: '文件移动到文件夹',
-        操作时间: new Date().toISOString()
-      });
-      
-      // 确保调用onMoveToFolder函数并传递正确的参数
-      try {
-        onMoveToFolder(String(active.id), folderId);
-        console.log('文件移动操作执行结果:', {
-          fileId: String(active.id),
-          folderId,
-          操作状态: '成功',
-          完成时间: new Date().toISOString()
-        });
-        
-        // 强制触发一次DOM更新，确保UI状态正确重置
-        setTimeout(() => {
-          console.log('延迟重置拖拽状态');
-          document.body.click(); // 模拟一次点击，帮助重置拖拽状态
-          
-          // 延迟后再次触发展开文件夹事件，确保文件夹保持展开状态
-          setTimeout(() => {
-            console.log('再次触发展开文件夹事件:', folderId);
-            document.dispatchEvent(new CustomEvent('expandFolder', { 
-              detail: { folderId },
-              bubbles: true,
-              cancelable: true
-            }));
-          }, 150);
-        }, 100);
-        
-        return; // 重要：成功处理后立即返回，不执行后续的重排序逻辑
-      } catch (error) {
-        console.error('调用onMoveToFolder函数失败:', error);
-      }
-    } else if (folderElement) {
-      console.error('找到文件夹元素但无法提取有效的文件夹ID');
-    }
-    
-    // 重新排序
-    if (active.id !== over.id) {
-      const oldIndex = files.findIndex(file => String(file.id) === String(active.id));
-      const newIndex = files.findIndex(file => String(file.id) === String(over.id));
-      
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newFiles = arrayMove(files, oldIndex, newIndex);
-        onReorder(newFiles);
+    } else {
+      // 如果不在文件夹上方，清除高亮
+      if (hoverFolderId) {
+        clearAllFolderHighlights();
+        setHoverFolderId(null);
       }
     }
   };
+  
+  // 处理拖拽结束
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    
+    Logger.info(`结束拖拽: ${active?.id}，目标: ${over?.id || '无目标'}`);
+    
+    if (!over) {
+      Logger.debug('拖拽未结束在有效目标上，操作取消');
+      cleanupDragState();
+      return;
+    }
+    
+    // 获取活动项原始文件信息
+    const draggedFile = files.find(file => String(file.id) === String(active.id));
+    
+    if (!draggedFile) {
+      Logger.error(`未找到被拖动的文件: ${active.id}`);
+      cleanupDragState();
+      return;
+    }
+    
+    // 记录初始状态，帮助调试
+    Logger.debug(`拖动文件初始状态: ID=${draggedFile.id}, 当前所属文件夹=${draggedFile.folder_id || '根目录'}`);
+    
+    // 获取最准确的鼠标位置
+    const finalMouseX = event.activatorEvent?.clientX ?? 
+                     event.active.currentCoordinates?.x ?? 
+                     window.innerWidth / 2;
+    const finalMouseY = event.activatorEvent?.clientY ?? 
+                     event.active.currentCoordinates?.y ?? 
+                     window.innerHeight / 2;
+    
+    Logger.debug(`拖拽结束位置: x=${finalMouseX}, y=${finalMouseY}`);
+    
+    // 获取当前鼠标位置下的所有元素
+    let elementsAtPoint = [];
+    try {
+      elementsAtPoint = document.elementsFromPoint(finalMouseX, finalMouseY);
+      
+      // 记录鼠标下的元素，帮助调试
+      if (CURRENT_LOG_LEVEL <= LOG_LEVEL.DEBUG) {
+        const elementInfo = elementsAtPoint.slice(0, 5).map(el => ({
+          tagName: el.tagName,
+          id: el.id,
+          className: el.className,
+          dataAttrs: {
+            isFolder: el.getAttribute('data-is-folder'),
+            folderId: el.getAttribute('data-folder-id'),
+            fileId: el.getAttribute('data-file-id')
+          }
+        }));
+        Logger.debug('鼠标下的主要元素:', elementInfo);
+      }
+
+      // 检查是否在侧边栏内，用于判断应该移动到根目录
+      const inSidebar = elementsAtPoint.some(el => 
+        el.className && typeof el.className === 'string' && (
+          el.className.includes('sidebar') || 
+          el.className.includes('MuiBox-root') || 
+          el.className.includes('MuiDrawer-paper') ||
+          el.className.includes('root-files-area')
+        ) || 
+        el.id === 'root-files' || 
+        el.id === 'global-drop-area'
+      );
+      
+      // 获取拖拽文件的原始文件夹ID
+      const originalFolderId = String(draggedFile.folder_id);
+      Logger.debug(`原始文件夹ID: ${originalFolderId || '根目录'}, 侧边栏区域: ${inSidebar}`);
+      
+      // 检查鼠标下的所有元素，同时精确区分文件夹头部和内容区域
+      const folderHeaderElement = elementsAtPoint.find(el => 
+        (el.id && el.id.startsWith('folder-') && !el.id.includes('content'))
+      );
+      
+      const folderContentElement = elementsAtPoint.find(el => 
+        (el.id && el.id.includes('folder-content-'))
+      );
+      
+      // 获取根目录区域元素
+      const rootAreaElement = elementsAtPoint.find(el => 
+        el.id === 'root-files' || el.getAttribute('data-is-root-area') === 'true'
+      );
+
+      Logger.debug(`侧边栏区域: ${inSidebar}, 根目录元素: ${rootAreaElement ? 'found' : 'not found'}`);
+      
+      // 如果在拖拽过程中已经确定了悬停文件夹，则优先使用它
+      if (hoverFolderId) {
+        // 检查悬停文件夹是否与原始文件夹相同
+        if (String(hoverFolderId) === originalFolderId) {
+          if (inSidebar && !folderContentElement && !folderHeaderElement) {
+            // 如果在侧边栏中且不在文件夹元素上，则移动到根目录
+            Logger.info(`文件原属于文件夹 ${originalFolderId}，但检测到拖拽到侧边栏非文件夹区域，移动到根目录`);
+            onMoveToFolder(String(active.id), null);
+          } else {
+            Logger.info(`文件已在文件夹 ${hoverFolderId} 中，跳过移动`);
+          }
+        } else {
+          Logger.info(`将文件 ${active.id} 移动到文件夹 ${hoverFolderId}`);
+          onMoveToFolder(String(active.id), hoverFolderId);
+          
+          // 触发文件夹展开事件
+          setTimeout(() => {
+            document.dispatchEvent(new CustomEvent('expandFolder', { 
+              detail: { folderId: hoverFolderId },
+              bubbles: true,
+              cancelable: true
+            }));
+          }, 100);
+        }
+        
+        cleanupDragState();
+        return;
+      }
+
+      // 处理特殊情况：如果位于侧边栏的根目录区域，优先移到根目录
+      if (inSidebar && rootAreaElement) {
+        Logger.info(`检测到拖拽到侧边栏根目录区域，优先处理为移动到根目录`);
+        if (draggedFile.folder_id !== null) {
+          Logger.info(`将文件 ${active.id} 从文件夹 ${draggedFile.folder_id} 移动到根目录`);
+          onMoveToFolder(String(active.id), null);
+          cleanupDragState();
+          return;
+        } else {
+          Logger.info(`文件已在根目录，跳过移动`);
+        }
+      }
+      
+      // 初始化目标文件夹ID为null（根目录）
+      let targetFolderId = null;
+      let isInSameFolder = false;
+      
+      // 首先检查文件是否拖拽到自己所在的文件夹内容区域
+      if (folderContentElement) {
+        const contentFolderId = folderContentElement.getAttribute('data-folder-id') || 
+                             folderContentElement.id.replace('folder-content-', '');
+        
+        // 检查是否是原文件夹的内容区域
+        if (String(contentFolderId) === originalFolderId) {
+          isInSameFolder = true;
+          Logger.debug(`文件拖拽到了自己所在的文件夹内容区域: ${contentFolderId}`);
+        }
+        
+        // 如果不是同一个文件夹，则设置为目标文件夹
+        if (!isInSameFolder) {
+          targetFolderId = contentFolderId;
+          Logger.debug(`检测到拖拽到文件夹内容区域: ${targetFolderId}`);
+        }
+      }
+      
+      // 如果不是拖到文件夹内容区域，检查是否拖到文件夹头部
+      if (!targetFolderId && folderHeaderElement) {
+        const headerFolderId = folderHeaderElement.getAttribute('data-folder-id') || 
+                            folderHeaderElement.id.replace('folder-', '');
+        
+        // 检查是否是原文件夹的头部
+        if (String(headerFolderId) === originalFolderId) {
+          isInSameFolder = true;
+          Logger.debug(`文件拖拽到了自己所在的文件夹头部: ${headerFolderId}`);
+        }
+        
+        // 如果不是同一个文件夹，则设置为目标文件夹
+        if (!isInSameFolder) {
+          targetFolderId = headerFolderId;
+          Logger.debug(`检测到拖拽到文件夹头部: ${targetFolderId}`);
+        }
+      }
+      
+      // 如果在侧边栏内但没有检测到具体文件夹，认为是拖到根目录
+      if (inSidebar && !targetFolderId && !isInSameFolder) {
+        targetFolderId = null; // 明确设为null，表示根目录
+        Logger.debug(`检测到拖拽到侧边栏非文件夹区域，视为根目录`);
+      }
+      
+      // 如果文件在原文件夹内拖拽，但位于侧边栏区域且鼠标不在任何文件夹上
+      // 这种情况下应该将文件移动到根目录
+      if (isInSameFolder && inSidebar && 
+          !elementsAtPoint.some(el => el.getAttribute('data-is-folder') === 'true' && 
+                              el.getAttribute('data-folder-id') === originalFolderId)) {
+        Logger.info(`文件虽然拖拽到原始文件夹区域,但鼠标位于侧边栏非文件夹区域,应移动到根目录`);
+        isInSameFolder = false;
+        targetFolderId = null; // 强制设置为根目录
+      }
+      
+      // 如果最终没有确定目标文件夹，且在侧边栏内，设为根目录
+      if (targetFolderId === undefined && inSidebar) {
+        targetFolderId = null;
+        Logger.debug('未找到具体目标文件夹，但在侧边栏内，默认为根目录');
+      }
+      
+      Logger.debug(`最终确定的目标:${targetFolderId !== undefined ? (targetFolderId === null ? '根目录' : targetFolderId) : '无效目标'}`);
+      Logger.debug(`是否在原文件夹: ${isInSameFolder}, 原文件夹: ${originalFolderId || '根目录'}`);
+      
+      // 执行移动操作
+      if (targetFolderId !== undefined) {
+        // 如果是同一个文件夹，跳过移动
+        if (isInSameFolder || 
+           (targetFolderId === null && draggedFile.folder_id === null) || 
+           (targetFolderId !== null && String(targetFolderId) === String(draggedFile.folder_id))) {
+          Logger.info(`文件已在${targetFolderId === null ? '根目录' : '文件夹 ' + targetFolderId}中，跳过移动`);
+        } else {
+          // 移动到目标文件夹或根目录
+          if (targetFolderId === null) {
+            Logger.info(`将文件 ${active.id} 从${draggedFile.folder_id ? '文件夹 ' + draggedFile.folder_id : '根目录'}移动到根目录`);
+          } else {
+            Logger.info(`将文件 ${active.id} 从${draggedFile.folder_id ? '文件夹 ' + draggedFile.folder_id : '根目录'}移动到文件夹 ${targetFolderId}`);
+            
+            // 触发文件夹展开事件
+            setTimeout(() => {
+              document.dispatchEvent(new CustomEvent('expandFolder', { 
+                detail: { folderId: targetFolderId },
+                bubbles: true,
+                cancelable: true
+              }));
+            }, 100);
+          }
+          
+          onMoveToFolder(String(active.id), targetFolderId);
+        }
+      } else {
+        Logger.info(`未找到有效目标，取消移动操作`);
+      }
+    } catch (error) {
+      Logger.error('拖拽结束处理失败', error);
+    }
+    
+    // 拖拽操作结束后，确保进行一次完整的清理
+    cleanupDragState();
+    Logger.endPerf('dragOperation');
+  };
+  
+  // 额外的安全保障：如果拖拽超过10秒没有结束，强制清理
+  React.useEffect(() => {
+    if (!isDragging || !dragStartTime) return;
+    
+    const timer = setTimeout(() => {
+      const dragDuration = Date.now() - dragStartTime;
+      if (dragDuration > 10000) { // 10秒超时
+        Logger.warn('拖拽操作超时，强制清理');
+        cleanupDragState();
+      }
+    }, 10000);
+    
+    return () => clearTimeout(timer);
+  }, [isDragging, dragStartTime, cleanupDragState]);
   
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      modifiers={[restrictToParentElement]}
     >
       <SortableContext 
         items={files.map(file => String(file.id))}
@@ -804,6 +787,50 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       >
         {children}
       </SortableContext>
+      
+      {/* 添加全局样式，只在拖拽时生效 */}
+      {activeFileId && (
+        <style>{`
+          /* ===== 文件夹内容区域容器样式 ===== */
+          [id^="folder-content-"] {
+            overflow: visible !important; /* 允许元素溢出以避免裁剪问题 */
+            position: relative !重要;
+            min-height: 20px !important;
+            z-index: auto !重要;
+          }
+          
+          /* ===== 根文件区域容器样式 ===== */
+          #root-files {
+            overflow: visible !important;
+            position: relative !重要;
+          }
+          
+          /* ===== 确保拖拽预览位置正确 ===== */
+          .sortable-file-item {
+            max-width: 100% !重要;
+            transform-origin: left top !重要;
+          }
+          
+          /* ===== 激活拖拽项样式 ===== */
+          [data-dragging="true"] {
+            z-index: 999 !重要;
+            opacity: 0.6 !重要;
+          }
+          
+          /* ===== 修复MUI组件可能的问题 ===== */
+          .MuiListItem-root {
+            overflow: visible !重要;
+          }
+          
+          /* ===== 确保拖拽层级正确 ===== */
+          body > [data-dnd-draggable="true"] {
+            z-index: 9999 !重要;
+            pointer-events: none !重要;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.15) !重要;
+            opacity: 0.8 !重要;
+          }
+        `}</style>
+      )}
     </DndContext>
   );
 }
