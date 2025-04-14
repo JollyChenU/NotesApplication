@@ -348,17 +348,6 @@ function App() {
         目标是否为根目录: isTargetRoot
       });
       
-      try {
-        // 直接使用API调用前记录尝试
-        console.log(`尝试调用API: updateFile(${fileIdStr}, { folder_id: ${normalizedFolderId} })`);
-        await noteService.updateFile(fileIdStr, { folder_id: normalizedFolderId });
-        console.log('API调用成功');
-      } catch (apiError) {
-        console.error('API调用失败', apiError);
-        setErrorMessage('API错误: 移动文件失败，请查看控制台');
-        return;
-      }
-      
       // 立即更新本地状态，确保UI立即反映变化
       setFiles(prevFiles => {
         console.log('更新前的文件列表:', prevFiles.length);
@@ -369,6 +358,24 @@ function App() {
         console.log('更新后的文件列表:', updatedFiles.length);
         return updatedFiles;
       });
+      
+      try {
+        // 直接使用API调用前记录尝试
+        console.log(`尝试调用API: updateFile(${fileIdStr}, { folder_id: ${normalizedFolderId} })`);
+        await noteService.updateFile(fileIdStr, { folder_id: normalizedFolderId });
+        console.log('API调用成功');
+      } catch (apiError) {
+        console.error('API调用失败', apiError);
+        setErrorMessage('API错误: 移动文件失败，请查看控制台');
+        
+        // 如果API调用失败，恢复UI状态
+        setFiles(prevFiles => {
+          return prevFiles.map(file => 
+            String(file.id) === fileIdStr ? { ...file, folder_id: fileBeforeMove.folder_id } : file
+          );
+        });
+        return;
+      }
       
       // 如果文件被移动到了文件夹中，确保该文件夹是展开的
       if (!isTargetRoot) {
@@ -388,15 +395,36 @@ function App() {
         }, 100);
       }
       
-      // 然后再从服务器刷新文件列表，确保数据同步
-      try {
-        console.log('正在从服务器刷新文件列表...');
-        const updatedFiles = await noteService.getAllFiles();
-        console.log('从服务器获取的更新文件列表:', updatedFiles);
-        setFiles(updatedFiles);
-      } catch (refreshError) {
-        console.error('刷新文件列表失败:', refreshError);
-      }
+      // 使用延迟更新，避免状态闪烁问题
+      // 延迟500ms后再获取服务器数据，确保服务器已经处理完移动操作
+      setTimeout(async () => {
+        try {
+          console.log('延迟刷新文件列表...');
+          const updatedFiles = await noteService.getAllFiles();
+          console.log('从服务器获取的更新文件列表:', updatedFiles);
+          
+          // 额外的一致性检查，确保服务器返回的数据正确
+          const movedFileFromServer = updatedFiles.find(f => String(f.id) === fileIdStr);
+          if (movedFileFromServer) {
+            const serverFolderId = movedFileFromServer.folder_id;
+            // 检查服务器返回的文件位置是否与我们的预期一致
+            if ((isTargetRoot && serverFolderId !== null && serverFolderId !== '') || 
+                (!isTargetRoot && String(serverFolderId) !== String(normalizedFolderId))) {
+              console.warn('服务器返回的文件位置与期望不一致，以本地状态为准', {
+                预期: normalizedFolderId,
+                服务器返回: serverFolderId
+              });
+              // 不更新状态，保持本地状态
+              return;
+            }
+          }
+          
+          setFiles(updatedFiles);
+          console.log('文件列表已从服务器成功更新');
+        } catch (refreshError) {
+          console.error('刷新文件列表失败:', refreshError);
+        }
+      }, 500);
       
       // 添加成功提示
       console.log('文件已成功移动到文件夹');

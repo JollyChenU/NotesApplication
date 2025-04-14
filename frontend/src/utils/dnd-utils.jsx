@@ -504,8 +504,18 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
     // 如果没有悬停目标，则不处理
     if (!over) return;
     
+    // 检查坐标值是否有效（防止NaN或Infinity值导致崩溃）
+    const clientX = event.clientX ?? 0;
+    const clientY = event.clientY ?? 0;
+    
+    // 验证坐标值是有限数值
+    if (!isFinite(clientX) || !isFinite(clientY)) {
+      Logger.warn(`拖拽事件包含无效坐标: x=${clientX}, y=${clientY}`);
+      return;
+    }
+    
     // 获取鼠标下的元素
-    const elementsAtPoint = document.elementsFromPoint(event.clientX, event.clientY);
+    const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
     
     // 查找文件夹元素
     const folderElement = elementsAtPoint.find(el => 
@@ -593,9 +603,26 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
         el.id === 'global-drop-area'
       );
       
+      // 增强根目录区域检测 - 特别是侧边栏底部区域
+      const emptyAreaAtBottom = elementsAtPoint.some(el => {
+        // 检查是否包含"根目录无文件"提示文本
+        const hasRootAreaText = el.textContent && (
+          el.textContent.includes('根目录') || 
+          el.textContent.includes('暂无文件') || 
+          el.textContent.includes('拖放到此处')
+        );
+        
+        // 检查自定义数据属性
+        const hasRootAreaAttr = 
+          el.getAttribute('data-is-root-area') === 'true' || 
+          el.getAttribute('data-droppable-id') === 'root-area';
+        
+        return hasRootAreaText || hasRootAreaAttr;
+      });
+      
       // 获取拖拽文件的原始文件夹ID
-      const originalFolderId = String(draggedFile.folder_id);
-      Logger.debug(`原始文件夹ID: ${originalFolderId || '根目录'}, 侧边栏区域: ${inSidebar}`);
+      const originalFolderId = String(draggedFile.folder_id || '');
+      Logger.debug(`原始文件夹ID: ${originalFolderId || '根目录'}, 侧边栏区域: ${inSidebar}, 底部空白区域: ${emptyAreaAtBottom}`);
       
       // 检查鼠标下的所有元素，同时精确区分文件夹头部和内容区域
       const folderHeaderElement = elementsAtPoint.find(el => 
@@ -659,62 +686,71 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       let targetFolderId = null;
       let isInSameFolder = false;
       
-      // 首先检查文件是否拖拽到自己所在的文件夹内容区域
-      if (folderContentElement) {
-        const contentFolderId = folderContentElement.getAttribute('data-folder-id') || 
-                             folderContentElement.id.replace('folder-content-', '');
-        
-        // 检查是否是原文件夹的内容区域
-        if (String(contentFolderId) === originalFolderId) {
-          isInSameFolder = true;
-          Logger.debug(`文件拖拽到了自己所在的文件夹内容区域: ${contentFolderId}`);
+      // 添加额外检测 - 如果检测到底部空白区域且为侧边栏，优先处理为根目录
+      if (emptyAreaAtBottom && inSidebar) {
+        Logger.info('检测到底部空白区域，优先设置目标为根目录');
+        targetFolderId = null; // 明确设置为根目录(null)
+        isInSameFolder = false; // 强制设置为不同文件夹，确保移动操作执行
+      }
+      // 否则，继续正常检测
+      else {
+        // 首先检查文件是否拖拽到自己所在的文件夹内容区域
+        if (folderContentElement) {
+          const contentFolderId = folderContentElement.getAttribute('data-folder-id') || 
+                               folderContentElement.id.replace('folder-content-', '');
+          
+          // 检查是否是原文件夹的内容区域
+          if (String(contentFolderId) === originalFolderId) {
+            isInSameFolder = true;
+            Logger.debug(`文件拖拽到了自己所在的文件夹内容区域: ${contentFolderId}`);
+          }
+          
+          // 如果不是同一个文件夹，则设置为目标文件夹
+          if (!isInSameFolder) {
+            targetFolderId = contentFolderId;
+            Logger.debug(`检测到拖拽到文件夹内容区域: ${targetFolderId}`);
+          }
         }
         
-        // 如果不是同一个文件夹，则设置为目标文件夹
-        if (!isInSameFolder) {
-          targetFolderId = contentFolderId;
-          Logger.debug(`检测到拖拽到文件夹内容区域: ${targetFolderId}`);
+        // 如果不是拖到文件夹内容区域，检查是否拖到文件夹头部
+        if (!targetFolderId && folderHeaderElement) {
+          const headerFolderId = folderHeaderElement.getAttribute('data-folder-id') || 
+                              folderHeaderElement.id.replace('folder-', '');
+          
+          // 检查是否是原文件夹的头部
+          if (String(headerFolderId) === originalFolderId) {
+            isInSameFolder = true;
+            Logger.debug(`文件拖拽到了自己所在的文件夹头部: ${headerFolderId}`);
+          }
+          
+          // 如果不是同一个文件夹，则设置为目标文件夹
+          if (!isInSameFolder) {
+            targetFolderId = headerFolderId;
+            Logger.debug(`检测到拖拽到文件夹头部: ${targetFolderId}`);
+          }
         }
-      }
-      
-      // 如果不是拖到文件夹内容区域，检查是否拖到文件夹头部
-      if (!targetFolderId && folderHeaderElement) {
-        const headerFolderId = folderHeaderElement.getAttribute('data-folder-id') || 
-                            folderHeaderElement.id.replace('folder-', '');
         
-        // 检查是否是原文件夹的头部
-        if (String(headerFolderId) === originalFolderId) {
-          isInSameFolder = true;
-          Logger.debug(`文件拖拽到了自己所在的文件夹头部: ${headerFolderId}`);
+        // 如果在侧边栏内但没有检测到具体文件夹，认为是拖到根目录
+        if (inSidebar && !targetFolderId && !isInSameFolder) {
+          targetFolderId = null; // 明确设为null，表示根目录
+          Logger.debug(`检测到拖拽到侧边栏非文件夹区域，视为根目录`);
         }
         
-        // 如果不是同一个文件夹，则设置为目标文件夹
-        if (!isInSameFolder) {
-          targetFolderId = headerFolderId;
-          Logger.debug(`检测到拖拽到文件夹头部: ${targetFolderId}`);
+        // 如果文件在原文件夹内拖拽，但位于侧边栏区域且鼠标不在任何文件夹上
+        // 这种情况下应该将文件移动到根目录
+        if (isInSameFolder && inSidebar && 
+            !elementsAtPoint.some(el => el.getAttribute('data-is-folder') === 'true' && 
+                                el.getAttribute('data-folder-id') === originalFolderId)) {
+          Logger.info(`文件虽然拖拽到原始文件夹区域,但鼠标位于侧边栏非文件夹区域,应移动到根目录`);
+          isInSameFolder = false;
+          targetFolderId = null; // 强制设置为根目录
         }
-      }
-      
-      // 如果在侧边栏内但没有检测到具体文件夹，认为是拖到根目录
-      if (inSidebar && !targetFolderId && !isInSameFolder) {
-        targetFolderId = null; // 明确设为null，表示根目录
-        Logger.debug(`检测到拖拽到侧边栏非文件夹区域，视为根目录`);
-      }
-      
-      // 如果文件在原文件夹内拖拽，但位于侧边栏区域且鼠标不在任何文件夹上
-      // 这种情况下应该将文件移动到根目录
-      if (isInSameFolder && inSidebar && 
-          !elementsAtPoint.some(el => el.getAttribute('data-is-folder') === 'true' && 
-                              el.getAttribute('data-folder-id') === originalFolderId)) {
-        Logger.info(`文件虽然拖拽到原始文件夹区域,但鼠标位于侧边栏非文件夹区域,应移动到根目录`);
-        isInSameFolder = false;
-        targetFolderId = null; // 强制设置为根目录
-      }
-      
-      // 如果最终没有确定目标文件夹，且在侧边栏内，设为根目录
-      if (targetFolderId === undefined && inSidebar) {
-        targetFolderId = null;
-        Logger.debug('未找到具体目标文件夹，但在侧边栏内，默认为根目录');
+        
+        // 如果最终没有确定目标文件夹，且在侧边栏内，设为根目录
+        if (targetFolderId === undefined && inSidebar) {
+          targetFolderId = null;
+          Logger.debug('未找到具体目标文件夹，但在侧边栏内，默认为根目录');
+        }
       }
       
       Logger.debug(`最终确定的目标:${targetFolderId !== undefined ? (targetFolderId === null ? '根目录' : targetFolderId) : '无效目标'}`);
@@ -722,15 +758,20 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       
       // 执行移动操作
       if (targetFolderId !== undefined) {
-        // 如果是同一个文件夹，跳过移动
-        if (isInSameFolder || 
-           (targetFolderId === null && draggedFile.folder_id === null) || 
-           (targetFolderId !== null && String(targetFolderId) === String(draggedFile.folder_id))) {
-          Logger.info(`文件已在${targetFolderId === null ? '根目录' : '文件夹 ' + targetFolderId}中，跳过移动`);
+        // 修正判断逻辑：明确区分根目录和文件夹
+        const isTargetRoot = targetFolderId === null;
+        const isSourceRoot = draggedFile.folder_id === null || draggedFile.folder_id === undefined || 
+                            draggedFile.folder_id === 0 || draggedFile.folder_id === '0' || draggedFile.folder_id === '';
+        const isSameLocation = isTargetRoot ? isSourceRoot : String(targetFolderId) === String(draggedFile.folder_id);
+        
+        // 如果是同一个位置，跳过移动
+        if (isSameLocation) {
+          Logger.info(`文件已在${isTargetRoot ? '根目录' : '文件夹 ' + targetFolderId}中，跳过移动`);
         } else {
           // 移动到目标文件夹或根目录
-          if (targetFolderId === null) {
+          if (isTargetRoot) {
             Logger.info(`将文件 ${active.id} 从${draggedFile.folder_id ? '文件夹 ' + draggedFile.folder_id : '根目录'}移动到根目录`);
+            onMoveToFolder(String(active.id), null);
           } else {
             Logger.info(`将文件 ${active.id} 从${draggedFile.folder_id ? '文件夹 ' + draggedFile.folder_id : '根目录'}移动到文件夹 ${targetFolderId}`);
             
@@ -742,9 +783,9 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
                 cancelable: true
               }));
             }, 100);
+            
+            onMoveToFolder(String(active.id), targetFolderId);
           }
-          
-          onMoveToFolder(String(active.id), targetFolderId);
         }
       } else {
         Logger.info(`未找到有效目标，取消移动操作`);

@@ -655,6 +655,45 @@ const Sidebar = ({
                 </Box>
               )}
             </Box>
+            
+            {/* 添加一个专门用于接收拖拽的根目录区域（对应截图中标记的红框区域） */}
+            <Box
+              id="root-drop-area"
+              data-is-root-area="true"
+              data-droppable-id="root-area"
+              sx={{
+                // 占据剩余空间，确保底部填充
+                flexGrow: 1, 
+                minHeight: '120px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                // 仅在拖拽时显示视觉提示
+                ...(isFileDragging ? {
+                  bgcolor: 'rgba(25, 118, 210, 0.04)',
+                  border: '1px dashed rgba(25, 118, 210, 0.2)',
+                  margin: '8px',
+                  borderRadius: '4px',
+                } : {
+                  // 非拖拽状态下保持透明
+                  border: 'none',
+                  bgcolor: 'transparent',
+                })
+              }}
+            >
+              {isFileDragging && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontStyle: 'italic',
+                    color: 'text.secondary',
+                    opacity: 0.7
+                  }}
+                >
+                  根目录下无文件
+                </Typography>
+              )}
+            </Box>
           </List>
         </Box>
       </FileDndContext>
