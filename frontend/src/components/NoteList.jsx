@@ -17,7 +17,9 @@ const NoteItem = memo(({
   onDelete, 
   onFocus, 
   onBlur,
-  onMenuOpen = () => {} // 添加新参数用于处理菜单打开
+  onMenuOpen = () => {}, // 添加新参数用于处理菜单打开
+  onCreateNewNote,   // 添加onCreateNewNote参数
+  isHandleActive = false // 添加图标激活状态参数
 }) => (
   <Box
     sx={{ position: 'relative' }}
@@ -51,7 +53,7 @@ const NoteItem = memo(({
         '&:hover': {
           border: '1px solid rgba(0, 0, 0, 0.12)',
           boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-          '& .delete-button, & .drag-handle': {
+          '& .delete-button, & .drag-handle:not(.active)': { // 修改选择器，排除已激活的图标
             opacity: 1
           }
         }
@@ -68,7 +70,7 @@ const NoteItem = memo(({
         }}
       >
         <Box
-          className="drag-handle"
+          className={`drag-handle ${isHandleActive ? 'active' : ''}`} // 添加激活状态的类名
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -76,11 +78,15 @@ const NoteItem = memo(({
             padding: '4px',
             fontSize: '24px',
             color: '#666',
-            opacity: 0,
+            opacity: isHandleActive ? 1 : 0, // 根据激活状态设置透明度
             transition: 'opacity 0.2s ease-in-out',
             '&:active': {
               cursor: 'grabbing',
               color: '#333'
+            },
+            '&.active': { // 添加激活状态的样式
+              opacity: 1,
+              color: '#3f51b5' // 激活时使用蓝色以突出显示
             }
           }}
           {...dragHandleProps}
@@ -114,7 +120,7 @@ const NoteItem = memo(({
         onFocus={onFocus}
         onBlur={onBlur}
         isEditing={false} // 将由父组件传递
-        onCreateNewNote={() => {}} // 将由父组件传递
+        onCreateNewNote={onCreateNewNote} // 传递onCreateNewNote函数
       />
     </Paper>
   </Box>
@@ -140,16 +146,22 @@ const NoteList = ({
   const [selectedNoteId, setSelectedNoteId] = useState(null);
   const [subMenuAnchorEl, setSubMenuAnchorEl] = useState(null);
   const [copiedNote, setCopiedNote] = useState(null);
+  // 添加激活的拖曳图标ID状态
+  const [activeHandleId, setActiveHandleId] = useState(null);
 
   const handleMenuOpen = (event, noteId) => {
     event.preventDefault();
     setMenuAnchorEl(event.currentTarget);
     setSelectedNoteId(noteId);
+    // 设置激活的拖曳图标ID
+    setActiveHandleId(noteId);
   };
 
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
     setSelectedNoteId(null);
+    // 清除激活的拖曳图标ID
+    setActiveHandleId(null);
   };
 
   const handleSubMenuOpen = (event) => {
@@ -240,6 +252,28 @@ const NoteList = ({
                 onFocus={onFocus}
                 onBlur={onBlur}
                 onMenuOpen={handleMenuOpen} // 传递菜单打开处理函数
+                onCreateNewNote={(noteId, data, callback) => {
+                  // 调用onUpdate函数来创建新笔记块
+                  const newNote = {
+                    isNew: true,
+                    fileId: activeFileId,
+                    afterNoteId: noteId,
+                    content: data.content || '',
+                    format: data.format || 'text'
+                  };
+                  
+                  // 调用onUpdate创建新笔记并获取新笔记的ID
+                  onUpdate(newNote, null)
+                    .then(newNoteId => {
+                      if (callback && typeof callback === 'function') {
+                        callback(newNoteId);
+                      }
+                    })
+                    .catch(error => {
+                      console.error('创建新笔记失败:', error);
+                    });
+                }}
+                isHandleActive={activeHandleId === note.id} // 传递激活状态
               />
             ))}
           </div>

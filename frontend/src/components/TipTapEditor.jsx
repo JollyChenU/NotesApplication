@@ -457,6 +457,148 @@ const TipTapEditor = ({
 
     // 添加键盘事件处理
     const handleKeyDown = (e) => {
+      // 处理回车键创建新笔记块
+      if (e.key === 'Enter' && !e.shiftKey) {
+        // 阻止默认行为，避免在当前笔记块内换行
+        e.preventDefault();
+        
+        try {
+          // 获取当前光标位置信息
+          const { from } = editor.state.selection;
+          
+          // 获取编辑器纯文本和HTML内容，用于调试
+          const wholeText = editor.getText();
+          const wholeHTML = editor.getHTML();
+          
+          // 记录实际光标位置
+          console.log('【拆分调试】光标位置:', from);
+          console.log('【拆分调试】文本内容:', wholeText);
+          console.log('【拆分调试】HTML内容:', wholeHTML);
+          
+          // 在编辑器中的光标位置通常包含了HTML标签等非可见元素
+          // 我们需要手动获取用户期望的光标位置
+          
+          // 获取用户可视区域的光标位置
+          let visibleCursorPos = -1;
+          let selectedNode = null;
+          let selectedOffset = -1;
+          
+          try {
+            // 获取当前浏览器选区
+            const domSelection = window.getSelection();
+            if (domSelection && domSelection.rangeCount > 0) {
+              const range = domSelection.getRangeAt(0);
+              selectedNode = range.startContainer;
+              selectedOffset = range.startOffset;
+              
+              // 只有在文本节点中才能获取准确的光标位置
+              if (selectedNode.nodeType === Node.TEXT_NODE) {
+                console.log('【拆分调试】选区信息 - 文本节点:', selectedNode.textContent);
+                console.log('【拆分调试】选区信息 - 偏移量:', selectedOffset);
+                visibleCursorPos = selectedOffset;
+              }
+            }
+          } catch (selectionError) {
+            console.log('【拆分调试】获取选区失败:', selectionError);
+          }
+          
+          // 尝试递归查找所有文本节点的内容，用于调试
+          function collectTextContent(node, texts = []) {
+            if (node.nodeType === Node.TEXT_NODE) {
+              texts.push(node.textContent);
+            } else if (node.childNodes && node.childNodes.length) {
+              for (let i = 0; i < node.childNodes.length; i++) {
+                collectTextContent(node.childNodes[i], texts);
+              }
+            }
+            return texts;
+          }
+          
+          const allTextNodes = editor.view.dom.childNodes;
+          const allTexts = [];
+          for (let i = 0; i < allTextNodes.length; i++) {
+            collectTextContent(allTextNodes[i], allTexts);
+          }
+          console.log('【拆分调试】编辑器中所有文本内容:', allTexts);
+          
+          // 根据收集到的信息决定拆分点
+          let splitPoint = from;
+          if (visibleCursorPos !== -1) {
+            console.log('【拆分调试】使用可视光标位置:', visibleCursorPos);
+            splitPoint = visibleCursorPos;
+            
+            // 确保拆分点不超出文本长度
+            if (splitPoint > wholeText.length) {
+              splitPoint = wholeText.length;
+            }
+          } else {
+            console.log('【拆分调试】使用编辑器光标位置:', from);
+            // 如果用户在"123123123"的中间，from通常是7而不是6
+            // 根据经验，我们尝试修正这个差距
+            if (wholeText.length > 0 && from > 0 && from <= wholeText.length) {
+              // 经验法则修正：如果光标在纯文本位置，尝试减1来获得更准确的位置
+              const potentialSplitPoint = from - 1;
+              if (potentialSplitPoint >= 0) {
+                splitPoint = potentialSplitPoint;
+                console.log('【拆分调试】应用经验法则修正，新拆分点:', splitPoint);
+              }
+            }
+          }
+          
+          // 使用确定的拆分点分割内容
+          const contentBeforeCursor = wholeText.substring(0, splitPoint);
+          const contentAfterCursor = wholeText.substring(splitPoint);
+          
+          console.log('【拆分调试】拆分结果 - 前半部分:', contentBeforeCursor);
+          console.log('【拆分调试】拆分结果 - 后半部分:', contentAfterCursor);
+          console.log('【拆分调试】拆分前总长度:', wholeText.length);
+          console.log('【拆分调试】拆分后总长度:', contentBeforeCursor.length + contentAfterCursor.length);
+          
+          // 更新当前笔记内容
+          editor.commands.setContent(contentBeforeCursor);
+          
+          // 立即触发更新
+          if (typeof onUpdate === 'function') {
+            onUpdate(note.id, {
+              content: contentBeforeCursor,
+              format: note.format
+            });
+          }
+          
+          // 创建新笔记块
+          if (typeof onCreateNewNote === 'function') {
+            onCreateNewNote(note.id, {
+              content: contentAfterCursor,
+              format: note.format
+            }, (newNoteId) => {
+              if (newNoteId) {
+                console.log('【拆分调试】新笔记创建成功，ID:', newNoteId);
+                
+                // 将焦点移动到新笔记块
+                if (onFocus) {
+                  onFocus(newNoteId);
+                }
+                
+                // 确保新笔记获得焦点
+                setTimeout(() => {
+                  if (window.tiptapEditors && window.tiptapEditors[newNoteId]) {
+                    window.tiptapEditors[newNoteId].commands.focus('start');
+                  } else {
+                    const newEditor = document.querySelector(`[data-note-id="${newNoteId}"] .ProseMirror`);
+                    if (newEditor) {
+                      setFocusToEditor(newEditor, newNoteId, 'start');
+                    }
+                  }
+                }, 100);
+              }
+            });
+          }
+        } catch (error) {
+          console.error('【拆分调试】拆分笔记时发生错误:', error);
+        }
+        return;
+      }
+      
       // 获取所有笔记ID并处理重复问题
       const noteElements = document.querySelectorAll('[data-note-id]');
 
