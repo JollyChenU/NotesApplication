@@ -28,7 +28,7 @@ const LOG_LEVEL = {
 };
 
 // 设置当前日志级别
-const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG; // 临时设置为DEBUG以便追踪问题
+const CURRENT_LOG_LEVEL = LOG_LEVEL.WARN; // 仅显示警告和错误信息
 
 // 记录性能指标
 const PERF_METRICS = {};

@@ -1,18 +1,17 @@
 import axios from 'axios';
 
-// 修正API_URL配置并添加调试信息
+// 修正API_URL配置
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-console.log('Using API URL:', API_URL);
 
-// 添加axios拦截器以便更好地跟踪API请求
+// 添加axios拦截器，仅记录错误信息
 axios.interceptors.request.use(config => {
-  console.log(`🚀 Request: ${config.method?.toUpperCase()} ${config.url}`);
+  // 移除请求日志
   return config;
 });
 
 axios.interceptors.response.use(
   response => {
-    console.log(`✅ Response: ${response.status} from ${response.config.url}`);
+    // 移除成功响应日志
     return response;
   },
   error => {
@@ -83,32 +82,11 @@ const noteService = {
    */
   updateFileFolder: async (fileId, targetFolderId) => {
     try {
-      console.log(`【API】开始移动文件 [${fileId}] 到${targetFolderId ? `文件夹 [${targetFolderId}]` : '根目录'}`);
-      console.time(`moveFile_${fileId}_to_${targetFolderId || 'root'}`);
-      
       // 构建请求数据
       const requestData = { folder_id: targetFolderId };
       
-      console.log('【API】发送文件移动请求:', {
-        url: `${API_URL}/files/${fileId}`,
-        method: 'PUT',
-        data: requestData,
-        fileId: fileId,
-        targetFolderId: targetFolderId || 'root'
-      });
-      
       // 发送请求
       const response = await axios.put(`${API_URL}/files/${fileId}`, requestData);
-      
-      console.log('【API】文件移动响应:', {
-        status: response.status,
-        dataReceived: !!response.data,
-        updatedFile: response.data,
-        oldFolderId: response.data.old_folder_id || '未知',
-        newFolderId: response.data.folder_id || 'root'
-      });
-      
-      console.timeEnd(`moveFile_${fileId}_to_${targetFolderId || 'root'}`);
       return response.data;
     } catch (error) {
       console.error('【API错误】文件移动失败:', {
@@ -130,17 +108,9 @@ const noteService = {
 
   updateFile: async (fileId, fileData) => {
     try {
-      console.log('【API】开始更新文件:', {fileId, fileData});
-      
       // 检查是否为移动文件操作
       if (typeof fileData === 'object' && ('folder_id' in fileData || 'folderId' in fileData)) {
         const targetFolderId = fileData.folder_id !== undefined ? fileData.folder_id : fileData.folderId;
-        
-        console.log('【API】检测到文件移动操作，改用专用方法', {
-          fileId,
-          targetFolderId: targetFolderId,
-          请求数据: fileData
-        });
         
         // 如果是移动文件操作，使用专用的updateFileFolder方法
         return noteService.updateFileFolder(fileId, targetFolderId);
@@ -149,13 +119,6 @@ const noteService = {
       // 常规文件更新操作
       const response = await axios.put(`${API_URL}/files/${fileId}`, 
         typeof fileData === 'object' ? fileData : { name: fileData });
-      
-      console.log('【API】文件更新成功:', {
-        fileId,
-        responseStatus: response.status,
-        responseData: response.data
-      });
-      
       return response.data;
     } catch (error) {
       console.error('【API错误】更新文件失败:', {

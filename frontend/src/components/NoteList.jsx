@@ -5,6 +5,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import NoteEditor from './NoteEditor';
 // 引入新的拖放工具
 import { NoteDndContext, createSortableItem } from '../utils/dnd-utils.jsx';
+// 导入noteService
+import noteService from '../services/noteService';
 
 const NoteItem = memo(({ 
   note, 
@@ -14,7 +16,8 @@ const NoteItem = memo(({
   onUpdate, 
   onDelete, 
   onFocus, 
-  onBlur 
+  onBlur,
+  onMenuOpen = () => {} // 添加新参数用于处理菜单打开
 }) => (
   <Box
     sx={{ position: 'relative' }}
@@ -81,6 +84,12 @@ const NoteItem = memo(({
             }
           }}
           {...dragHandleProps}
+          onClick={(e) => {
+            // 阻止事件冒泡，避免触发父元素的点击事件
+            e.stopPropagation();
+            // 显示菜单，使用拖曳图标作为锚点
+            onMenuOpen(e, note.id);
+          }}
         >
           <NoteDragHandle />
         </Box>
@@ -212,6 +221,7 @@ const NoteList = ({
       .catch(error => console.error('Failed to update note order:', error));
   };
 
+  // 将handleMenuOpen函数传递给SortableNoteItem组件
   return (
     <Box sx={{ position: 'relative' }}>
       {Array.isArray(notes) && notes.length > 0 ? (
@@ -229,6 +239,7 @@ const NoteList = ({
                 onDelete={onDelete}
                 onFocus={onFocus}
                 onBlur={onBlur}
+                onMenuOpen={handleMenuOpen} // 传递菜单打开处理函数
               />
             ))}
           </div>

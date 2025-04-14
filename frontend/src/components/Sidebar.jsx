@@ -30,7 +30,7 @@ const LOG_LEVEL = {
 };
 
 // 设置当前日志级别
-const CURRENT_LOG_LEVEL = LOG_LEVEL.INFO;
+const CURRENT_LOG_LEVEL = LOG_LEVEL.WARN; // 只输出警告和错误信息
 
 // 日志工具
 const SidebarLogger = {

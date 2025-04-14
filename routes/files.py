@@ -157,18 +157,33 @@ def update_file(file_id):
         
         # 同时支持folder_id和folderId两种命名方式
         folder_id_value = None
+        folder_id_set = False
+        
         if 'folder_id' in data:
             folder_id_value = data['folder_id']
+            folder_id_set = True
             logger.info(f"📂 检测到folder_id字段: {folder_id_value}")
         elif 'folderId' in data:
             folder_id_value = data['folderId']
+            folder_id_set = True
             logger.info(f"📂 检测到folderId字段: {folder_id_value}")
             
-        if folder_id_value is not None:
-            # 确保folder_id正确转换为整数或None
-            if folder_id_value == 'null' or folder_id_value is None or folder_id_value == 0 or folder_id_value == '0':
+        if folder_id_set:
+            # 明确处理移动到根目录的情况
+            if folder_id_value == 'null' or folder_id_value is None or folder_id_value == 0 or folder_id_value == '0' or str(folder_id_value).lower() == 'root':
                 logger.info(f"📂 将文件 {file_id} 从文件夹 {file.folder_id} 移动到根目录")
+                # 明确设置folder_id为None
                 file.folder_id = None
+                
+                # 日志记录SQL更新操作以便调试
+                logger.debug(f"SQL更新: file.folder_id = {file.folder_id}")
+                
+                # 立即执行flush以确保更新已应用到会话
+                try:
+                    db.session.flush()
+                    logger.debug(f"SQL flush后的file.folder_id = {file.folder_id}")
+                except Exception as flush_error:
+                    logger.error(f"Flush出错: {flush_error}")
             else:
                 try:
                     new_folder_id = int(folder_id_value)
@@ -186,19 +201,27 @@ def update_file(file_id):
         file.name = data  # 兼容旧版API
     
     try:
+        # 将更改提交到数据库
         db.session.commit()
+        
+        # 强制重新从数据库查询以确保获取最新状态
+        file = NoteFile.query.get(file_id)
+        
         processing_time = time.time() - start_time
         logger.info(f"✅ 文件更新成功: ID = {file_id}, 新文件夹ID = {file.folder_id}, 处理时间: {processing_time:.2f}秒")
         
-        # 返回结果中包含新旧文件夹ID，便于前端跟踪变化
+        # 直接返回更新后的文件对象 
         result = file.to_dict()
         result['old_folder_id'] = old_folder_id
         result['processing_time'] = processing_time
         
-        return jsonify({
-            'message': 'File updated successfully',
-            'file': result
-        })
+        # 特别记录根目录情况
+        if file.folder_id is None:
+            logger.info(f"📁 文件现在位于根目录 (folder_id = {file.folder_id})")
+            # 确保JSON响应中folder_id显式为null
+            result['folder_id'] = None
+        
+        return jsonify(result)
     except Exception as e:
         db.session.rollback()
         logger.error(f"❌ 更新文件失败: {str(e)}")
