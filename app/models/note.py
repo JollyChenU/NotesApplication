@@ -12,7 +12,7 @@
 """
 
 from datetime import datetime
-from extensions import db  # 从extensions模块导入db，而不是从models
+from app.extensions import db  # 更新导入路径
 
 class Note(db.Model):
     """笔记内容模型，表示单个笔记条目的内容和格式"""
