@@ -3,7 +3,7 @@
  * @date 2025-04-01
  * @description Git操作指南，用于团队协作开发
  * @version 1.0.0
- * @license GPL-3.0
+ * @license Apache-2.0
 -->
 
 # Git 操作指南

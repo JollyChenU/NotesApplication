@@ -225,4 +225,4 @@ NotesApplication/
 
 ## 许可证
 
-GNU通用公共许可证v3.0
+Apache 许可证 2.0 版本

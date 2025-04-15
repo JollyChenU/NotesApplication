@@ -3,7 +3,7 @@
 @date 2025-04-01
 @description 应用配置文件
 @version 1.0.0
-@license GPL-3.0
+@license Apache-2.0
 """
 
 import os

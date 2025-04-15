@@ -279,5 +279,5 @@ Issues and Pull Requests are welcome!
 ## License
 ## 许可证
 
-GNU General Public License v3.0
-GNU通用公共许可证v3.0
+Apache License 2.0
+Apache 许可证 2.0 版本

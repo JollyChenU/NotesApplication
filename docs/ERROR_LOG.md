@@ -3,7 +3,7 @@
  * @date 2025-04-01
  * @description 项目错误日志，记录开发过程中遇到的问题及解决方案
  * @version 1.0.0
- * @license GPL-3.0
+ * @license Apache-2.0
 -->
 
 # 错误日志 Error Log
@@ -305,9 +305,9 @@ const cleanupDragState = React.useCallback(() => {
   <style>{`
     [id^="folder-content-"] {
       overflow: hidden !important; /* 问题所在 */
-      position: relative !important;
+      position: relative !重要;
       min-height: 20px !重要;
-      contain: paint !important; /* 限制绘制边界 */
+      contain: paint !重要; /* 限制绘制边界 */
     }
     // ...其他样式
   `}</style>
@@ -317,10 +317,10 @@ const cleanupDragState = React.useCallback(() => {
 {activeFileId && (
   <style>{`
     [id^="folder-content-"] {
-      overflow: visible !important; /* 允许元素溢出以避免裁剪问题 */
-      position: relative !important;
-      min-height: 20px !important;
-      z-index: auto !important; /* 确保z-index不干扰正常交互 */
+      overflow: visible !重要; /* 允许元素溢出以避免裁剪问题 */
+      position: relative !重要;
+      min-height: 20px !重要;
+      z-index: auto !重要; /* 确保z-index不干扰正常交互 */
     }
     // ...其他样式
   `}</style>
