@@ -18,23 +18,28 @@ A modern note-taking application that supports rich text editing, Markdown synta
 - 💾 自动保存
 - 🎨 简洁现代的界面
 
-## Changelog
-## 更新日志
-
+## Documentation
+## 文档资源
 For detailed update history, please check:
 完整的更新历史请查看：
 
-- CHANGELOG.md (Bilingual / 双语)
-- CHANGELOG_CN.md (Chinese / 中文)
-- CHANGELOG_EN.md (English / 英文)
+- [CHANGELOG.md](docs/CHANGELOG.md) (Bilingual / 双语)
+- [CHANGELOG_CN.md](docs/CHANGELOG_CN.md) (Chinese / 中文)
+- [CHANGELOG_EN.md](docs/CHANGELOG_EN.md) (English / 英文)
 
-## Deployment Guide
-## 部署指南
+For deployment instructions, please check:
+部署说明请查看：
 
-For Ubuntu deployment instructions, please check:
-如需了解Ubuntu环境下的部署说明，请查看：
+- [DEPLOY_UBUNTU.md](docs/DEPLOY_UBUNTU.md) - Ubuntu Deployment Guide / Ubuntu部署指南
+- [DOCKER_DEPLOY.md](docs/DOCKER_DEPLOY.md) - Docker Deployment Guide / Docker部署指南
 
-- DEPLOY_UBUNTU.md
+Additional documentation resources:
+其他文档资源：
+
+- [ERROR_LOG.md](docs/ERROR_LOG.md) - Common Error Solutions / 常见错误解决方案
+- [icons_summary.md](docs/icons_summary.md) - Icon Usage Summary / 图标使用概览
+- [git-operations.md](docs/git-operations.md) - Git Operation Guide / Git操作指南
+- [Unfinished_Features.md](docs/Unfinished_Features.md) - Unfinished Features List / 未完成功能清单
 
 ## How to Run
 ## 如何运行
@@ -153,38 +158,81 @@ Application will start at http://localhost:5173
 ## 项目结构
 
 ```
-Notes/
-├── app.py              # Flask backend application / Flask后端应用
-├── config.py           # Configuration file / 配置文件
-├── notes.db            # SQLite database file / SQLite数据库文件
-├── requirements.txt    # Python dependencies / Python依赖
-├── CHANGELOG.md        # Bilingual changelog / 双语更新日志
-├── CHANGELOG_CN.md     # Chinese changelog / 中文更新日志
-├── CHANGELOG_EN.md     # English changelog / 英文更新日志
-├── DEPLOY_UBUNTU.md    # Ubuntu deployment guide / Ubuntu部署指南
-├── ERROR_LOG.md        # Error logging / 错误日志
-├── models/            # Database models / 数据库模型
-│   ├── __init__.py    # Package initialization / 包初始化
-│   ├── note.py        # Note model / 笔记模型
-│   └── note_file.py   # Note file model / 笔记文件模型
-├── routes/            # API routes / API路由
-│   ├── __init__.py    # Package initialization / 包初始化
-│   ├── notes.py       # Note routes / 笔记路由
-│   └── files.py       # File routes / 文件路由
-├── tests/             # Test directory / 测试目录
-│   └── __init__.py    # Test initialization / 测试初始化
-└── frontend/          # React frontend application / React前端应用
-    ├── src/
-    │   ├── components/  # React components / React组件
-    │   ├── hooks/       # Custom hooks / 自定义钩子
-    │   ├── services/    # API services / API服务
-    │   ├── App.jsx      # Main application component / 主应用组件
-    │   └── main.jsx     # Application entry / 应用入口
-    ├── .env.development # Development environment config / 开发环境配置
-    ├── .env.production  # Production environment config / 生产环境配置
-    ├── package.json     # Node.js dependency configuration / Node.js依赖配置
-    ├── vite.config.js   # Vite configuration / Vite配置
-    └── index.html       # HTML template / HTML模板
+NotesApplication/
+├── app.py                 # Flask backend application entry / Flask后端应用入口
+├── LICENSE                # License file / 许可证文件
+├── docker-compose.yml     # Docker Compose configuration / Docker Compose配置文件
+├── Dockerfile             # Docker configuration / Docker配置文件
+├── notes.db               # SQLite database file / SQLite数据库文件
+├── requirements.txt       # Python dependencies / Python依赖
+├── package.json           # Node.js dependencies for root / 根目录Node.js依赖
+├── README.md              # Project main documentation / 项目主文档
+├── app_debug.log          # Application debug log / 应用调试日志
+├── app/                   # Application main directory / 应用主目录
+│   ├── __init__.py        # Package initialization and app factory / 包初始化和应用工厂
+│   ├── extensions.py      # Extensions instantiation / 扩展实例化
+│   ├── api/               # API routes module / API路由模块
+│   │   ├── __init__.py    # Routes package initialization / 路由包初始化
+│   │   ├── files.py       # File routes / 文件路由
+│   │   ├── notes.py       # Note routes / 笔记路由
+│   │   ├── folders.py     # Folder routes / 文件夹路由
+│   │   └── health.py      # Health check routes / 健康检查路由
+│   ├── config/            # Configuration module / 配置模块
+│   │   ├── __init__.py    # Config package initialization / 配置包初始化
+│   │   └── config.py      # Configuration definitions / 配置定义
+│   ├── models/            # Database models / 数据库模型
+│   │   ├── __init__.py    # Models package initialization / 模型包初始化
+│   │   ├── note.py        # Note model / 笔记模型
+│   │   ├── note_file.py   # Note file model / 笔记文件模型
+│   │   └── folder.py      # Folder model / 文件夹模型
+│   ├── services/          # Business services / 业务服务
+│   │   └── __init__.py    # Services package initialization / 服务包初始化
+│   └── utils/             # Utility functions / 工具函数
+│       └── __init__.py    # Utils package initialization / 工具包初始化
+├── docs/                  # Documentation directory / 文档目录
+│   ├── CHANGELOG.md       # Bilingual changelog / 双语更新日志
+│   ├── CHANGELOG_CN.md    # Chinese changelog / 中文更新日志
+│   ├── CHANGELOG_EN.md    # English changelog / 英文更新日志
+│   ├── DEPLOY_UBUNTU.md   # Ubuntu deployment guide / Ubuntu部署指南
+│   ├── DOCKER_DEPLOY.md   # Docker deployment guide / Docker部署指南
+│   ├── ERROR_LOG.md       # Error logging / 错误日志
+│   ├── git-operations.md  # Git operation guide / Git操作指南
+│   ├── icons_summary.md   # Icons usage summary / 图标使用汇总
+│   ├── OnePage_Propsal_EN.md # English proposal / 英文提案
+│   ├── PPT_Content_Description.md # PPT content description / PPT内容描述
+│   ├── PPT_Outline.md     # PPT outline / PPT大纲
+│   ├── README_CN.md       # Chinese README / 中文README
+│   ├── README_EN.md       # English README / 英文README
+│   └── Unfinished_Features.md # Unfinished features / 未完成功能
+├── frontend/              # React frontend application / React前端应用
+│   ├── index.html         # HTML template / HTML模板
+│   ├── Dockerfile         # Frontend Docker configuration / 前端Docker配置
+│   ├── nginx.conf         # Nginx configuration / Nginx配置
+│   ├── package.json       # Node.js dependency configuration / Node.js依赖配置
+│   ├── vite.config.js     # Vite configuration / Vite配置
+│   └── src/               # Source code / 源代码
+│       ├── App.jsx        # Main application component / 主应用组件
+│       ├── index.css      # Main CSS file / 主CSS文件
+│       ├── main.jsx       # Application entry / 应用入口
+│       ├── components/    # React components / React组件
+│       │   ├── NoteEditor.jsx    # Note editor component / 笔记编辑器组件
+│       │   ├── NoteList.jsx      # Note list component / 笔记列表组件
+│       │   ├── Sidebar.jsx       # Sidebar component / 侧边栏组件
+│       │   └── TipTapEditor.jsx  # TipTap editor component / TipTap编辑器组件
+│       ├── hooks/         # Custom hooks / 自定义钩子
+│       │   ├── useDragAndDrop.js       # Drag and drop hook / 拖放钩子
+│       │   └── useFileDragAndDrop.js   # File drag and drop hook / 文件拖放钩子
+│       ├── services/      # API services / API服务
+│       │   └── noteService.js    # Note service / 笔记服务
+│       └── utils/         # Utility functions / 工具函数
+│           ├── dnd-utils.jsx       # Drag and drop utilities / 拖放工具
+│           ├── dndkit-installer.jsx # DnD kit installer / DnD工具安装器
+│           ├── dndWrapper.js        # DnD wrapper / DnD包装器
+│           └── dndWrapper.jsx        # DnD JSX wrapper / DnD JSX包装器
+├── tests/                # Test directory / 测试目录
+│   └── test_app.py       # Application tests / 应用测试
+└── tools/                # Tool scripts / 工具脚本
+    └── sync_docs.py      # Documentation sync tool / 文档同步工具
 ```
 
 ## Development Plans

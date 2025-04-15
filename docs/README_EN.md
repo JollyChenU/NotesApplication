@@ -9,19 +9,29 @@ A modern note-taking application that supports rich text editing, Markdown synta
 - 💾 Auto-save functionality
 - 🎨 Clean and modern interface
 
-## Changelog
+## Documentation
 
 For detailed update history, please check:
 
-- CHANGELOG.md (Bilingual)
-- CHANGELOG_CN.md (Chinese)
-- CHANGELOG_EN.md (English)
+- [CHANGELOG.md](CHANGELOG.md) (Bilingual)
+- [CHANGELOG_CN.md](CHANGELOG_CN.md) (Chinese)
+- [CHANGELOG_EN.md](CHANGELOG_EN.md) (English)
 
-## Deployment Guide
 
-For Ubuntu deployment instructions, please check:
 
-- DEPLOY_UBUNTU.md
+For deployment instructions, please check:
+
+- [DEPLOY_UBUNTU.md](DEPLOY_UBUNTU.md) - Ubuntu Deployment Guide
+- [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) - Docker Deployment Guide
+
+
+
+Additional documentation resources:
+
+- [ERROR_LOG.md](ERROR_LOG.md) - Common Error Solutions
+- [icons_summary.md](icons_summary.md) - Icon Usage Summary
+- [git-operations.md](git-operations.md) - Git Operation Guide
+- [Unfinished_Features.md](Unfinished_Features.md) - Unfinished Features List
 
 ## How to Run
 
@@ -113,38 +123,81 @@ Application will start at http://localhost:5173
 ## Project Structure
 
 ```
-Notes/
-├── app.py              # Flask backend application
-├── config.py           # Configuration file
-├── notes.db            # SQLite database file
-├── requirements.txt    # Python dependencies
-├── CHANGELOG.md        # Bilingual changelog
-├── CHANGELOG_CN.md     # Chinese changelog
-├── CHANGELOG_EN.md     # English changelog
-├── DEPLOY_UBUNTU.md    # Ubuntu deployment guide
-├── ERROR_LOG.md        # Error logging
-├── models/            # Database models
-│   ├── __init__.py    # Package initialization
-│   ├── note.py        # Note model
-│   └── note_file.py   # Note file model
-├── routes/            # API routes
-│   ├── __init__.py    # Package initialization
-│   ├── notes.py       # Note routes
-│   └── files.py       # File routes
-├── tests/             # Test directory
-│   └── __init__.py    # Test initialization
-└── frontend/          # React frontend application
-    ├── src/
-    │   ├── components/  # React components
-    │   ├── hooks/       # Custom hooks
-    │   ├── services/    # API services
-    │   ├── App.jsx      # Main application component
-    │   └── main.jsx     # Application entry
-    ├── .env.development # Development environment config
-    ├── .env.production  # Production environment config
-    ├── package.json     # Node.js dependency configuration
-    ├── vite.config.js   # Vite configuration
-    └── index.html       # HTML template
+NotesApplication/
+├── app.py                 # Flask backend application entry
+├── LICENSE                # License file
+├── docker-compose.yml     # Docker Compose configuration
+├── Dockerfile             # Docker configuration
+├── notes.db               # SQLite database file
+├── requirements.txt       # Python dependencies
+├── package.json           # Node.js dependencies for root
+├── README.md              # Project main documentation
+├── app_debug.log          # Application debug log
+├── app/                   # Application main directory
+│   ├── __init__.py        # Package initialization and app factory
+│   ├── extensions.py      # Extensions instantiation
+│   ├── api/               # API routes module
+│   │   ├── __init__.py    # Routes package initialization
+│   │   ├── files.py       # File routes
+│   │   ├── notes.py       # Note routes
+│   │   ├── folders.py     # Folder routes
+│   │   └── health.py      # Health check routes
+│   ├── config/            # Configuration module
+│   │   ├── __init__.py    # Config package initialization
+│   │   └── config.py      # Configuration definitions
+│   ├── models/            # Database models
+│   │   ├── __init__.py    # Models package initialization
+│   │   ├── note.py        # Note model
+│   │   ├── note_file.py   # Note file model
+│   │   └── folder.py      # Folder model
+│   ├── services/          # Business services
+│   │   └── __init__.py    # Services package initialization
+│   └── utils/             # Utility functions
+│       └── __init__.py    # Utils package initialization
+├── docs/                  # Documentation directory
+│   ├── CHANGELOG.md       # Bilingual changelog
+│   ├── CHANGELOG_CN.md    # Chinese changelog
+│   ├── CHANGELOG_EN.md    # English changelog
+│   ├── DEPLOY_UBUNTU.md   # Ubuntu deployment guide
+│   ├── DOCKER_DEPLOY.md   # Docker deployment guide
+│   ├── ERROR_LOG.md       # Error logging
+│   ├── git-operations.md  # Git operation guide
+│   ├── icons_summary.md   # Icons usage summary
+│   ├── OnePage_Propsal_EN.md # English proposal
+│   ├── PPT_Content_Description.md # PPT content description
+│   ├── PPT_Outline.md     # PPT outline
+│   ├── README_CN.md       # Chinese README
+│   ├── README_EN.md       # English README
+│   └── Unfinished_Features.md # Unfinished features
+├── frontend/              # React frontend application
+│   ├── index.html         # HTML template
+│   ├── Dockerfile         # Frontend Docker configuration
+│   ├── nginx.conf         # Nginx configuration
+│   ├── package.json       # Node.js dependency configuration
+│   ├── vite.config.js     # Vite configuration
+│   └── src/               # Source code
+│       ├── App.jsx        # Main application component
+│       ├── index.css      # Main CSS file
+│       ├── main.jsx       # Application entry
+│       ├── components/    # React components
+│       │   ├── NoteEditor.jsx    # Note editor component
+│       │   ├── NoteList.jsx      # Note list component
+│       │   ├── Sidebar.jsx       # Sidebar component
+│       │   └── TipTapEditor.jsx  # TipTap editor component
+│       ├── hooks/         # Custom hooks
+│       │   ├── useDragAndDrop.js       # Drag and drop hook
+│       │   └── useFileDragAndDrop.js   # File drag and drop hook
+│       ├── services/      # API services
+│       │   └── noteService.js    # Note service
+│       └── utils/         # Utility functions
+│           ├── dnd-utils.jsx       # Drag and drop utilities
+│           ├── dndkit-installer.jsx # DnD kit installer
+│           ├── dndWrapper.js        # DnD wrapper
+│           └── dndWrapper.jsx        # DnD JSX wrapper
+├── tests/                # Test directory
+│   └── test_app.py       # Application tests
+└── tools/                # Tool scripts
+    └── sync_docs.py      # Documentation sync tool
 ```
 
 ## Development Plans

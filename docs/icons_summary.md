@@ -4,7 +4,20 @@
 
 ## 图标导入情况
 
-项目中所有图标都来自 Material-UI 的图标库 `@mui/icons-material`。
+当前项目主要从 Material-UI 的图标库导入图标组件：
+
+```jsx
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import DescriptionIcon from '@mui/icons-material/Description';
+import FolderIcon from '@mui/icons-material/Folder';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+```
 
 ## 图标列表
 
@@ -12,25 +25,30 @@
 
 | 图标变量名 | 图标组件名 | 用途 |
 | --- | --- | --- |
-| `AddIcon` | `@mui/icons-material/Add` | 添加新文件按钮 |
-| `MenuIcon` | `@mui/icons-material/Menu` | 侧边栏展开按钮 |
-| `ChevronLeftIcon` | `@mui/icons-material/ChevronLeft` | 侧边栏折叠按钮 |
+| `FolderIcon` | `@mui/icons-material/Folder` | 关闭状态的文件夹图标 |
+| `FolderOpenIcon` | `@mui/icons-material/FolderOpen` | 打开状态的文件夹图标 |
+| `DescriptionIcon` | `@mui/icons-material/Description` | 文件图标 |
+| `ExpandLess` | `@mui/icons-material/ExpandLess` | 文件夹收起指示器 |
+| `ExpandMore` | `@mui/icons-material/ExpandMore` | 文件夹展开指示器 |
+| `AddIcon` | `@mui/icons-material/Add` | 新建文件按钮 |
+| `CreateNewFolderIcon` | `@mui/icons-material/CreateNewFolder` | 新建文件夹按钮 |
+| `MoreVertIcon` | `@mui/icons-material/MoreVert` | 文件夹菜单按钮 |
 
 **使用位置：**
-- `AddIcon`: 用于侧边栏中的添加新文件按钮
-- `MenuIcon`: 当侧边栏折叠时显示的展开按钮
-- `ChevronLeftIcon`: 当侧边栏展开时显示的折叠按钮
+- 侧边栏文件和文件夹导航
+- 文件夹展开/收起控制
+- 新建文件和文件夹操作
+- 文件夹上下文菜单
 
 ### 2. NoteList.jsx 组件中的图标
 
 | 图标变量名 | 图标组件名 | 用途 |
 | --- | --- | --- |
-| `NoteDragHandle` | `@mui/icons-material/DragIndicator` | 笔记拖拽手柄 |
-| `EditIcon` | `@mui/icons-material/Edit` | 编辑笔记按钮 |
-| `DeleteIcon` | `@mui/icons-material/Delete` | 删除笔记按钮 |
+| `DeleteIcon` | `@mui/icons-material/Delete` | 笔记删除按钮 |
+| `DragIndicatorIcon` | `@mui/icons-material/DragIndicator` | 笔记拖拽手柄 |
 
 **使用位置：**
-- 这些图标用于笔记列表中每个笔记项的操作按钮
+- 笔记项中的拖拽和删除操作
 
 ### 3. NoteEditor.jsx 组件中的图标
 
@@ -45,7 +63,7 @@
 
 | 图标变量名 | 图标组件名 | 用途 |
 | --- | --- | --- |
-| `AddIcon` | `@mui/icons-material/Add` | 添加按钮 |
+| `AddIcon` | `@mui/icons-material/Add` | 添加笔记按钮 |
 | `DeleteIcon` | `@mui/icons-material/Delete` | 删除按钮 |
 
 **使用位置：**
@@ -53,21 +71,18 @@
 
 ## 图标重复使用情况
 
-以下图标在多个组件中重复使用：
-
-1. `AddIcon` - 在 Sidebar.jsx 和 App.jsx 中使用
-2. `DeleteIcon` - 在 NoteList.jsx 和 App.jsx 中使用
-3. `DragIndicator` 图标 - 在 NoteList.jsx 中命名为 `NoteDragHandle`，在 NoteEditor.jsx 中命名为 `DragIndicatorIcon`
+| 图标变量名 | 重复使用的组件 |
+| --- | --- |
+| `AddIcon` | App.jsx, Sidebar.jsx |
+| `DeleteIcon` | App.jsx, NoteList.jsx |
+| `DragIndicatorIcon` | NoteList.jsx, NoteEditor.jsx |
 
 ## 总结
 
-项目中总共使用了 6 种不同的 Material-UI 图标：
+项目中大量使用 Material-UI 图标库，保持了界面风格的一致性。主要用途集中在：
 
-1. Add (添加)
-2. Delete (删除)
-3. Edit (编辑)
-4. DragIndicator (拖拽指示器)
-5. Menu (菜单)
-6. ChevronLeft (向左箭头)
+1. 导航和层次结构显示（文件夹图标、展开/收起图标）
+2. 操作指示（添加、删除图标）
+3. 交互控制（拖拽手柄、菜单按钮）
 
-这些图标主要用于用户界面的交互元素，如按钮和拖拽控件。
+随着项目功能的扩展，建议继续使用 Material-UI 图标库保持界面一致性，特别是在添加用户认证、分享和设置等功能时。

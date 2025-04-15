@@ -1,6 +1,6 @@
 # Notes 笔记应用
 
-一个正在尝试的笔记应用，支持富文本编辑、Markdown语法、实时预览、笔记拖拽排序等功能。
+一个现代化的笔记应用，支持富文本编辑、Markdown语法、实时预览、笔记拖拽排序等功能。
 
 ## 功能特性
 
@@ -9,19 +9,29 @@
 - 💾 自动保存
 - 🎨 简洁现代的界面
 
-## 更新日志
+## 文档资源
 
 完整的更新历史请查看：
 
-- CHANGELOG.md (Bilingual / 双语)
-- CHANGELOG_CN.md (Chinese / 中文)
-- CHANGELOG_EN.md (English / 英文)
+- [CHANGELOG.md](CHANGELOG.md) (双语)
+- [CHANGELOG_CN.md](CHANGELOG_CN.md) (中文)
+- [CHANGELOG_EN.md](CHANGELOG_EN.md) (英文)
 
-## 部署指南
 
-如需了解Ubuntu环境下的部署说明，请查看：
 
-- DEPLOY_UBUNTU.md
+部署说明请查看：
+
+- [DEPLOY_UBUNTU.md](DEPLOY_UBUNTU.md) - Ubuntu部署指南
+- [DOCKER_DEPLOY.md](DOCKER_DEPLOY.md) - Docker部署指南
+
+
+
+其他文档资源：
+
+- [ERROR_LOG.md](ERROR_LOG.md) - 常见错误解决方案
+- [icons_summary.md](icons_summary.md) - 图标使用概览
+- [git-operations.md](git-operations.md) - Git操作指南
+- [Unfinished_Features.md](Unfinished_Features.md) - 未完成功能清单
 
 ## 如何运行
 
@@ -113,38 +123,81 @@ npm run dev
 ## 项目结构
 
 ```
-Notes/
-├── app.py              # Flask后端应用
-├── config.py           # 配置文件
-├── notes.db            # SQLite数据库文件
-├── requirements.txt    # Python依赖
-├── CHANGELOG.md        # 双语更新日志
-├── CHANGELOG_CN.md     # 中文更新日志
-├── CHANGELOG_EN.md     # 英文更新日志
-├── DEPLOY_UBUNTU.md    # Ubuntu部署指南
-├── ERROR_LOG.md        # 错误日志
-├── models/            # 数据库模型
-│   ├── __init__.py    # 包初始化
-│   ├── note.py        # 笔记模型
-│   └── note_file.py   # 笔记文件模型
-├── routes/            # API路由
-│   ├── __init__.py    # 包初始化
-│   ├── notes.py       # 笔记路由
-│   └── files.py       # 文件路由
-├── tests/             # 测试目录
-│   └── __init__.py    # 测试初始化
-└── frontend/          # React前端应用
-    ├── src/
-    │   ├── components/  # React组件
-    │   ├── hooks/       # 自定义钩子
-    │   ├── services/    # API服务
-    │   ├── App.jsx      # 主应用组件
-    │   └── main.jsx     # 应用入口
-    ├── .env.development # 开发环境配置
-    ├── .env.production  # 生产环境配置
-    ├── package.json     # Node.js依赖配置
-    ├── vite.config.js   # Vite配置
-    └── index.html       # HTML模板
+NotesApplication/
+├── app.py                 # Flask后端应用入口
+├── LICENSE                # 许可证文件
+├── docker-compose.yml     # Docker Compose配置文件
+├── Dockerfile             # Docker配置文件
+├── notes.db               # SQLite数据库文件
+├── requirements.txt       # Python依赖
+├── package.json           # 根目录Node.js依赖
+├── README.md              # 项目主文档
+├── app_debug.log          # 应用调试日志
+├── app/                   # 应用主目录
+│   ├── __init__.py        # 包初始化和应用工厂
+│   ├── extensions.py      # 扩展实例化
+│   ├── api/               # API路由模块
+│   │   ├── __init__.py    # 路由包初始化
+│   │   ├── files.py       # 文件路由
+│   │   ├── notes.py       # 笔记路由
+│   │   ├── folders.py     # 文件夹路由
+│   │   └── health.py      # 健康检查路由
+│   ├── config/            # 配置模块
+│   │   ├── __init__.py    # 配置包初始化
+│   │   └── config.py      # 配置定义
+│   ├── models/            # 数据库模型
+│   │   ├── __init__.py    # 模型包初始化
+│   │   ├── note.py        # 笔记模型
+│   │   ├── note_file.py   # 笔记文件模型
+│   │   └── folder.py      # 文件夹模型
+│   ├── services/          # 业务服务
+│   │   └── __init__.py    # 服务包初始化
+│   └── utils/             # 工具函数
+│       └── __init__.py    # 工具包初始化
+├── docs/                  # 文档目录
+│   ├── CHANGELOG.md       # 双语更新日志
+│   ├── CHANGELOG_CN.md    # 中文更新日志
+│   ├── CHANGELOG_EN.md    # 英文更新日志
+│   ├── DEPLOY_UBUNTU.md   # Ubuntu部署指南
+│   ├── DOCKER_DEPLOY.md   # Docker部署指南
+│   ├── ERROR_LOG.md       # 错误日志
+│   ├── git-operations.md  # Git操作指南
+│   ├── icons_summary.md   # 图标使用汇总
+│   ├── OnePage_Propsal_EN.md # 英文提案
+│   ├── PPT_Content_Description.md # PPT内容描述
+│   ├── PPT_Outline.md     # PPT大纲
+│   ├── README_CN.md       # 中文README
+│   ├── README_EN.md       # 英文README
+│   └── Unfinished_Features.md # 未完成功能
+├── frontend/              # React前端应用
+│   ├── index.html         # HTML模板
+│   ├── Dockerfile         # 前端Docker配置
+│   ├── nginx.conf         # Nginx配置
+│   ├── package.json       # Node.js依赖配置
+│   ├── vite.config.js     # Vite配置
+│   └── src/               # 源代码
+│       ├── App.jsx        # 主应用组件
+│       ├── index.css      # 主CSS文件
+│       ├── main.jsx       # 应用入口
+│       ├── components/    # React组件
+│       │   ├── NoteEditor.jsx    # 笔记编辑器组件
+│       │   ├── NoteList.jsx      # 笔记列表组件
+│       │   ├── Sidebar.jsx       # 侧边栏组件
+│       │   └── TipTapEditor.jsx  # TipTap编辑器组件
+│       ├── hooks/         # 自定义钩子
+│       │   ├── useDragAndDrop.js       # 拖放钩子
+│       │   └── useFileDragAndDrop.js   # 文件拖放钩子
+│       ├── services/      # API服务
+│       │   └── noteService.js    # 笔记服务
+│       └── utils/         # 工具函数
+│           ├── dnd-utils.jsx       # 拖放工具
+│           ├── dndkit-installer.jsx # DnD工具安装器
+│           ├── dndWrapper.js        # DnD包装器
+│           └── dndWrapper.jsx        # DnD JSX包装器
+├── tests/                # 测试目录
+│   └── test_app.py       # 应用测试
+└── tools/                # 工具脚本
+    └── sync_docs.py      # 文档同步工具
 ```
 
 ## 开发计划

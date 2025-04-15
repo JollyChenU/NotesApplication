@@ -4,6 +4,55 @@
 - 安装Docker: https://docs.docker.com/get-docker/
 - 安装Docker Compose: https://docs.docker.com/compose/install/
 
+## 项目Docker文件结构
+
+项目包含以下Docker相关文件：
+
+1. 根目录下的`Dockerfile`：用于构建后端服务
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]
+```
+
+2. `frontend/Dockerfile`：用于构建前端服务
+3. `docker-compose.yml`：定义和配置服务
+```yaml
+version: '3'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./notes.db:/app/notes.db
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+```
+
 ## 部署步骤
 
 1. 克隆代码仓库
@@ -36,122 +85,59 @@ docker-compose logs backend
 docker-compose down
 ```
 
-## 配置文件说明
+## 高级配置
 
-### Dockerfile (后端)
-位于项目根目录，用于构建Python Flask后端服务。该配置：
-- 使用Python 3.12轻量级镜像
-- 安装项目依赖
-- 暴露5000端口用于API服务
+### 环境变量配置
 
-### frontend/Dockerfile (前端)
-用于构建React前端应用：
-- 使用Node.js进行构建
-- 将构建结果部署到Nginx服务器
-- 暴露80端口提供Web界面
+可以通过创建`.env`文件来配置环境变量：
 
-### frontend/nginx.conf
-配置Nginx服务器：
-- 处理前端单页应用的路由
-- 将API请求代理到后端服务
-
-### docker-compose.yml
-协调整个应用的容器编排：
-- 定义前端和后端服务
-- 配置网络通信
-- 设置数据持久化
-
-## 生产环境部署注意事项
-
-1. **环境变量**：在生产环境中，建议通过环境变量文件(.env)配置敏感信息
-
-2. **CORS设置**：调整后端CORS设置，限制只允许特定域名访问：
-```python
-CORS(app, resources={
-    r"/*": {
-        "origins": ["https://yourdomain.com"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
-    }
-})
-```
-
-3. **数据备份**：定期备份notes.db文件：
 ```bash
-# 备份数据库
-docker-compose exec backend cp /app/notes.db /app/notes.db.backup
-docker cp <container_id>:/app/notes.db.backup ./backups/notes.db.$(date +%Y%m%d)
+# 示例.env文件内容
+FLASK_ENV=production
+SECRET_KEY=your-secure-secret-key
 ```
 
-4. **HTTPS配置**：在生产环境中，应该配置HTTPS。可以通过修改nginx配置并添加SSL证书：
-```
-server {
-    listen 443 ssl;
-    server_name yourdomain.com;
-    
-    ssl_certificate /etc/nginx/ssl/cert.pem;
-    ssl_certificate_key /etc/nginx/ssl/key.pem;
-    
-    # 其余配置...
-}
+### 持久化数据
+
+数据库文件`notes.db`已通过卷挂载方式进行了持久化：
+
+```yaml
+volumes:
+  - ./notes.db:/app/notes.db
 ```
 
-## 常见问题排查
+### 自定义端口
 
-1. **前端无法连接后端**：
-   - 检查nginx配置中的proxy_pass设置
-   - 确保backend服务名称与docker-compose.yml中定义的一致
+如需修改端口映射，可以编辑`docker-compose.yml`文件中的`ports`部分：
 
-2. **数据库连接问题**：
-   - 检查卷挂载配置
-   - 确保notes.db文件权限正确
-
-3. **容器启动失败**：
-   - 检查日志：`docker-compose logs`
-   - 检查端口占用：`netstat -tuln`
-
-4. **性能优化**：
-   - 为后端服务设置合理的容器资源限制
-   - 配置nginx缓存以提高前端性能
+```yaml
+ports:
+  - "8080:80"  # 将前端服务映射到8080端口
+```
 
 ## Ubuntu环境中的Docker部署
 
-### 1. 准备Ubuntu环境
+### 1. 环境准备
 
-#### 安装Docker
+#### 安装Docker和Docker Compose
 ```bash
-# 更新包索引
+# 更新系统包
 sudo apt update
+sudo apt upgrade -y
 
-# 安装必要的依赖
-sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+# 安装Docker
+sudo apt install -y docker.io
 
-# 添加Docker官方GPG密钥
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+# 启动Docker并设置开机自启
+sudo systemctl start docker
+sudo systemctl enable docker
 
-# 添加Docker APT仓库
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-
-# 再次更新包索引
-sudo apt update
-
-# 安装Docker CE
-sudo apt install -y docker-ce
-
-# 将当前用户添加到docker用户组(这样可以无需sudo运行docker命令)
-sudo usermod -aG docker ${USER}
-
-# 应用用户组更改(或者可以选择重启系统)
-newgrp docker
-```
-
-#### 安装Docker Compose
-```bash
 # 安装Docker Compose
 sudo apt install -y docker-compose
 
-# 检查安装版本
-docker-compose --version
+# 将当前用户添加到docker组（可选，避免每次使用sudo）
+sudo usermod -aG docker $USER
+# 重新登录以应用更改
 ```
 
 ### 2. 部署应用
@@ -183,43 +169,18 @@ docker-compose ps
 ```
 
 #### 访问应用
-如果您在云服务器(如AWS EC2)上部署:
-1. 确保已开放端口80(前端)和5000(后端API，可选)
-2. 使用服务器的公共IP地址访问：http://<服务器IP地址>
+- 如果服务器有公网IP，可以通过`http://<server-ip>/`访问前端
+- API可通过`http://<server-ip>:5000/`访问
 
-### 3. 维护和管理
+### 3. 维护操作
 
 #### 查看日志
 ```bash
-# 查看所有容器的日志
+# 查看所有容器日志
 docker-compose logs
 
-# 实时查看日志
-docker-compose logs -f
-
-# 查看特定服务的最近50行日志
-docker-compose logs --tail=50 backend
-```
-
-#### 重新启动服务
-```bash
-# 重启服务
-docker-compose restart
-
-# 重启特定服务
-docker-compose restart backend
-```
-
-#### 停止和删除容器
-```bash
-# 停止所有容器
-docker-compose stop
-
-# 停止并删除容器(保留数据卷)
-docker-compose down
-
-# 停止并删除容器和数据卷(小心使用!)
-docker-compose down -v
+# 查看最近的日志并持续监控
+docker-compose logs -f --tail=100
 ```
 
 #### 更新应用
@@ -228,31 +189,31 @@ docker-compose down -v
 git pull
 
 # 重新构建并启动容器
+docker-compose down
 docker-compose up -d --build
 ```
 
-### 4. 数据管理
-
-#### 数据库备份
+#### 备份数据
 ```bash
-# 创建备份目录
-mkdir -p backups
-
-# 备份SQLite数据库
-docker-compose exec backend sh -c "cat /app/notes.db" > ./backups/notes.db.$(date +%Y%m%d)
-
-# 或者使用cp命令
-docker cp $(docker-compose ps -q backend):/app/notes.db ./backups/notes.db.$(date +%Y%m%d)
+# 复制SQLite数据库文件
+cp notes.db notes.db.backup.$(date +%Y%m%d)
 ```
 
-#### 数据库恢复
-```bash
-# 确保容器已停止
-docker-compose stop backend
+## 常见问题与解决方案
 
-# 复制备份文件到容器
-docker cp ./backups/notes.db.20250414 $(docker-compose ps -q backend):/app/notes.db
+1. **无法连接到前端**
+   - 检查端口映射是否正确
+   - 检查服务器防火墙设置，确保端口80已开放
 
-# 重启服务
-docker-compose start backend
-```
+2. **API连接失败**
+   - 确认backend容器正常运行
+   - 检查前端环境变量中的API地址配置
+   - 验证端口5000是否可访问
+
+3. **数据未持久化**
+   - 确认volume挂载配置正确
+   - 检查容器内外的权限设置
+
+4. **容器无法启动**
+   - 检查日志以获取详细错误信息：`docker-compose logs`
+   - 验证系统资源是否充足
