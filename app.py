@@ -3,7 +3,7 @@
 @date 2025-04-01
 @description 主应用入口
 @version 1.1.0
-@license GPL-3.0
+@license Apache-2.0
 """
 
 from app import create_app
