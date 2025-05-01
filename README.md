@@ -159,33 +159,34 @@ Application will start at http://localhost:5173
 
 ```
 NotesApplication/
-├── app.py                 # Flask backend application entry / Flask后端应用入口
+├── .dockerignore          # Docker ignore configuration / Docker忽略配置
+├── .gitignore             # Git ignore configuration / Git忽略配置
+├── Dockerfile             # Docker configuration for backend / 后端Docker配置文件
 ├── LICENSE                # License file / 许可证文件
+├── README.md              # Project main documentation (this file) / 项目主文档 (本文档)
+├── app.py                 # Flask backend application entry / Flask后端应用入口
 ├── docker-compose.yml     # Docker Compose configuration / Docker Compose配置文件
-├── Dockerfile             # Docker configuration / Docker配置文件
-├── notes.db               # SQLite database file / SQLite数据库文件
+├── package-lock.json      # Node.js lock file for root / 根目录Node.js锁定文件
+├── package.json           # Node.js dependencies for root (e.g., for tools) / 根目录Node.js依赖 (例如用于工具脚本)
 ├── requirements.txt       # Python dependencies / Python依赖
-├── package.json           # Node.js dependencies for root / 根目录Node.js依赖
-├── README.md              # Project main documentation / 项目主文档
-├── app_debug.log          # Application debug log / 应用调试日志
-├── app/                   # Application main directory / 应用主目录
+├── app/                   # Backend application main directory / 后端应用主目录
 │   ├── __init__.py        # Package initialization and app factory / 包初始化和应用工厂
-│   ├── extensions.py      # Extensions instantiation / 扩展实例化
 │   ├── api/               # API routes module / API路由模块
 │   │   ├── __init__.py    # Routes package initialization / 路由包初始化
 │   │   ├── files.py       # File routes / 文件路由
-│   │   ├── notes.py       # Note routes / 笔记路由
 │   │   ├── folders.py     # Folder routes / 文件夹路由
-│   │   └── health.py      # Health check routes / 健康检查路由
+│   │   ├── health.py      # Health check routes / 健康检查路由
+│   │   └── notes.py       # Note routes / 笔记路由
 │   ├── config/            # Configuration module / 配置模块
 │   │   ├── __init__.py    # Config package initialization / 配置包初始化
 │   │   └── config.py      # Configuration definitions / 配置定义
+│   ├── extensions.py      # Extensions instantiation / 扩展实例化
 │   ├── models/            # Database models / 数据库模型
 │   │   ├── __init__.py    # Models package initialization / 模型包初始化
+│   │   ├── folder.py      # Folder model / 文件夹模型
 │   │   ├── note.py        # Note model / 笔记模型
-│   │   ├── note_file.py   # Note file model / 笔记文件模型
-│   │   └── folder.py      # Folder model / 文件夹模型
-│   ├── services/          # Business services / 业务服务
+│   │   └── note_file.py   # Note file model / 笔记文件模型
+│   ├── services/          # Business logic services (currently empty) / 业务逻辑服务 (当前为空)
 │   │   └── __init__.py    # Services package initialization / 服务包初始化
 │   └── utils/             # Utility functions / 工具函数
 │       └── __init__.py    # Utils package initialization / 工具包初始化
@@ -195,45 +196,38 @@ NotesApplication/
 │   ├── CHANGELOG_EN.md    # English changelog / 英文更新日志
 │   ├── DEPLOY_UBUNTU.md   # Ubuntu deployment guide / Ubuntu部署指南
 │   ├── DOCKER_DEPLOY.md   # Docker deployment guide / Docker部署指南
-│   ├── ERROR_LOG.md       # Error logging / 错误日志
-│   ├── git-operations.md  # Git operation guide / Git操作指南
-│   ├── icons_summary.md   # Icons usage summary / 图标使用汇总
+│   ├── ERROR_LOG.md       # Error logging and solutions / 错误日志与解决方案
 │   ├── OnePage_Propsal_EN.md # English proposal / 英文提案
 │   ├── PPT_Content_Description.md # PPT content description / PPT内容描述
 │   ├── PPT_Outline.md     # PPT outline / PPT大纲
 │   ├── README_CN.md       # Chinese README / 中文README
 │   ├── README_EN.md       # English README / 英文README
-│   └── Unfinished_Features.md # Unfinished features / 未完成功能
-├── frontend/              # React frontend application / React前端应用
-│   ├── index.html         # HTML template / HTML模板
-│   ├── Dockerfile         # Frontend Docker configuration / 前端Docker配置
-│   ├── nginx.conf         # Nginx configuration / Nginx配置
-│   ├── package.json       # Node.js dependency configuration / Node.js依赖配置
-│   ├── vite.config.js     # Vite configuration / Vite配置
+│   ├── Unfinished_Features.md # Unfinished features list / 未完成功能清单
+│   ├── git-operations.md  # Git operation guide / Git操作指南
+│   └── icons_summary.md   # Icons usage summary / 图标使用汇总
+├── frontend/              # Frontend application (React + Vite) / 前端应用 (React + Vite)
+│   ├── .env.development   # Development environment variables / 开发环境变量
+│   ├── Dockerfile         # Docker configuration for frontend / 前端Docker配置文件
+│   ├── index.html         # HTML entry point / HTML入口文件
+│   ├── nginx.conf         # Nginx configuration for Docker deployment / Docker部署Nginx配置
+│   ├── package-lock.json  # Node.js lock file / Node.js锁定文件
+│   ├── package.json       # Node.js dependencies / Node.js依赖
+│   ├── vite.config.js     # Vite configuration / Vite配置文件
 │   └── src/               # Source code / 源代码
 │       ├── App.jsx        # Main application component / 主应用组件
-│       ├── index.css      # Main CSS file / 主CSS文件
-│       ├── main.jsx       # Application entry / 应用入口
-│       ├── components/    # React components / React组件
-│       │   ├── NoteEditor.jsx    # Note editor component / 笔记编辑器组件
-│       │   ├── NoteList.jsx      # Note list component / 笔记列表组件
-│       │   ├── Sidebar.jsx       # Sidebar component / 侧边栏组件
-│       │   └── TipTapEditor.jsx  # TipTap editor component / TipTap编辑器组件
-│       ├── hooks/         # Custom hooks / 自定义钩子
-│       │   ├── useDragAndDrop.js       # Drag and drop hook / 拖放钩子
-│       │   └── useFileDragAndDrop.js   # File drag and drop hook / 文件拖放钩子
-│       ├── services/      # API services / API服务
-│       │   └── noteService.js    # Note service / 笔记服务
+│       ├── components/    # Reusable UI components / 可复用UI组件
+│       ├── hooks/         # Custom React hooks / 自定义React钩子
+│       ├── index.css      # Global styles / 全局样式
+│       ├── main.jsx       # Application entry point / 应用入口文件
+│       ├── services/      # API interaction services / API交互服务
 │       └── utils/         # Utility functions / 工具函数
-│           ├── dnd-utils.jsx       # Drag and drop utilities / 拖放工具
-│           ├── dndkit-installer.jsx # DnD kit installer / DnD工具安装器
-│           ├── dndWrapper.js        # DnD wrapper / DnD包装器
-│           └── dndWrapper.jsx        # DnD JSX wrapper / DnD JSX包装器
-├── tests/                # Test directory / 测试目录
-│   └── test_app.py       # Application tests / 应用测试
-└── tools/                # Tool scripts / 工具脚本
-    └── sync_docs.py      # Documentation sync tool / 文档同步工具
+├── tests/                 # Test files / 测试文件
+│   └── test_app.py        # Backend application tests / 后端应用测试
+└── tools/                 # Utility scripts / 工具脚本
+    └── sync_docs.py       # Script to sync documentation / 文档同步脚本
 ```
+*(Note: `notes.db` and `app_debug.log` are omitted as they are typically generated or gitignored)*
+*(注意: `notes.db` 和 `app_debug.log` 文件被省略，因为它们通常是生成文件或被git忽略)*
 
 ## Development Plans
 ## 开发计划

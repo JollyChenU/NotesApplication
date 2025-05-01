@@ -6,7 +6,7 @@
 @date 2025-04-01
 @description 文件管理相关路由
 @version 1.1.0
-@license GPL-3.0
+@license Apache-2.0
 """
 
 import logging

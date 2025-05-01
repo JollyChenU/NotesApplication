@@ -6,7 +6,7 @@
 @date 2025-04-01
 @description 路由模块初始化文件
 @version 1.0.0
-@license GPL-3.0
+@license Apache-2.0
 """
 
 from flask import Blueprint, jsonify

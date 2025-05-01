@@ -3,7 +3,7 @@
 @date 2025-04-01
 @description API健康检查路由
 @version 1.0.0
-@license GPL-3.0
+@license Apache-2.0
 """
 
 from flask import Blueprint, jsonify

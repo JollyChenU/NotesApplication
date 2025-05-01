@@ -124,33 +124,34 @@ Application will start at http://localhost:5173
 
 ```
 NotesApplication/
-├── app.py                 # Flask backend application entry
+├── .dockerignore          # Docker ignore configuration
+├── .gitignore             # Git ignore configuration
+├── Dockerfile             # Docker configuration for backend
 ├── LICENSE                # License file
-├── docker-compose.yml     # Docker Compose configuration
-├── Dockerfile             # Docker configuration
-├── notes.db               # SQLite database file
-├── requirements.txt       # Python dependencies
-├── package.json           # Node.js dependencies for root
 ├── README.md              # Project main documentation
-├── app_debug.log          # Application debug log
-├── app/                   # Application main directory
+├── app.py                 # Flask backend application entry
+├── docker-compose.yml     # Docker Compose configuration
+├── package-lock.json      # Node.js lock file for root
+├── package.json           # Node.js dependencies for root (e.g., for tools)
+├── requirements.txt       # Python dependencies
+├── app/                   # Backend application main directory
 │   ├── __init__.py        # Package initialization and app factory
-│   ├── extensions.py      # Extensions instantiation
 │   ├── api/               # API routes module
 │   │   ├── __init__.py    # Routes package initialization
 │   │   ├── files.py       # File routes
-│   │   ├── notes.py       # Note routes
 │   │   ├── folders.py     # Folder routes
-│   │   └── health.py      # Health check routes
+│   │   ├── health.py      # Health check routes
+│   │   └── notes.py       # Note routes
 │   ├── config/            # Configuration module
 │   │   ├── __init__.py    # Config package initialization
 │   │   └── config.py      # Configuration definitions
+│   ├── extensions.py      # Extensions instantiation
 │   ├── models/            # Database models
 │   │   ├── __init__.py    # Models package initialization
+│   │   ├── folder.py      # Folder model
 │   │   ├── note.py        # Note model
-│   │   ├── note_file.py   # Note file model
-│   │   └── folder.py      # Folder model
-│   ├── services/          # Business services
+│   │   └── note_file.py   # Note file model
+│   ├── services/          # Business logic services (currently empty)
 │   │   └── __init__.py    # Services package initialization
 │   └── utils/             # Utility functions
 │       └── __init__.py    # Utils package initialization
@@ -160,45 +161,37 @@ NotesApplication/
 │   ├── CHANGELOG_EN.md    # English changelog
 │   ├── DEPLOY_UBUNTU.md   # Ubuntu deployment guide
 │   ├── DOCKER_DEPLOY.md   # Docker deployment guide
-│   ├── ERROR_LOG.md       # Error logging
-│   ├── git-operations.md  # Git operation guide
-│   ├── icons_summary.md   # Icons usage summary
+│   ├── ERROR_LOG.md       # Error logging and solutions
 │   ├── OnePage_Propsal_EN.md # English proposal
 │   ├── PPT_Content_Description.md # PPT content description
 │   ├── PPT_Outline.md     # PPT outline
 │   ├── README_CN.md       # Chinese README
-│   ├── README_EN.md       # English README
-│   └── Unfinished_Features.md # Unfinished features
-├── frontend/              # React frontend application
-│   ├── index.html         # HTML template
-│   ├── Dockerfile         # Frontend Docker configuration
-│   ├── nginx.conf         # Nginx configuration
-│   ├── package.json       # Node.js dependency configuration
+│   ├── README_EN.md       # English README (this file)
+│   ├── Unfinished_Features.md # Unfinished features list
+│   ├── git-operations.md  # Git operation guide
+│   └── icons_summary.md   # Icons usage summary
+├── frontend/              # Frontend application (React + Vite)
+│   ├── .env.development   # Development environment variables
+│   ├── Dockerfile         # Docker configuration for frontend
+│   ├── index.html         # HTML entry point
+│   ├── nginx.conf         # Nginx configuration for Docker deployment
+│   ├── package-lock.json  # Node.js lock file
+│   ├── package.json       # Node.js dependencies
 │   ├── vite.config.js     # Vite configuration
 │   └── src/               # Source code
 │       ├── App.jsx        # Main application component
-│       ├── index.css      # Main CSS file
-│       ├── main.jsx       # Application entry
-│       ├── components/    # React components
-│       │   ├── NoteEditor.jsx    # Note editor component
-│       │   ├── NoteList.jsx      # Note list component
-│       │   ├── Sidebar.jsx       # Sidebar component
-│       │   └── TipTapEditor.jsx  # TipTap editor component
-│       ├── hooks/         # Custom hooks
-│       │   ├── useDragAndDrop.js       # Drag and drop hook
-│       │   └── useFileDragAndDrop.js   # File drag and drop hook
-│       ├── services/      # API services
-│       │   └── noteService.js    # Note service
+│       ├── components/    # Reusable UI components
+│       ├── hooks/         # Custom React hooks
+│       ├── index.css      # Global styles
+│       ├── main.jsx       # Application entry point
+│       ├── services/      # API interaction services
 │       └── utils/         # Utility functions
-│           ├── dnd-utils.jsx       # Drag and drop utilities
-│           ├── dndkit-installer.jsx # DnD kit installer
-│           ├── dndWrapper.js        # DnD wrapper
-│           └── dndWrapper.jsx        # DnD JSX wrapper
-├── tests/                # Test directory
-│   └── test_app.py       # Application tests
-└── tools/                # Tool scripts
-    └── sync_docs.py      # Documentation sync tool
+├── tests/                 # Test files
+│   └── test_app.py        # Backend application tests
+└── tools/                 # Utility scripts
+    └── sync_docs.py       # Script to sync documentation
 ```
+*(Note: `notes.db` and `app_debug.log` are omitted as they are typically generated or gitignored)*
 
 ## Development Plans
 

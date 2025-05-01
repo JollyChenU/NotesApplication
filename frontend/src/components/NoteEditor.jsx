@@ -1,7 +1,6 @@
 /**
- * @author Jolly
- * @date 2025-03-01
- * @description 笔记编辑器组件，负责处理笔记的编辑功能
+ * @description 笔记编辑器组件，包含拖拽手柄和 TipTap 编辑器
+ * @license Apache-2.0
  */
 
 import React, { useState } from 'react';

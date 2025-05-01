@@ -3,7 +3,7 @@
 @date 2025-04-01
 @description 文件夹数据模型
 @version 1.0.0
-@license GPL-3.0
+@license Apache-2.0
 """
 
 from app.extensions import db  # 更新导入路径

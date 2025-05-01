@@ -124,33 +124,34 @@ npm run dev
 
 ```
 NotesApplication/
-├── app.py                 # Flask后端应用入口
+├── .dockerignore          # Docker忽略配置
+├── .gitignore             # Git忽略配置
+├── Dockerfile             # 后端Docker配置文件
 ├── LICENSE                # 许可证文件
-├── docker-compose.yml     # Docker Compose配置文件
-├── Dockerfile             # Docker配置文件
-├── notes.db               # SQLite数据库文件
-├── requirements.txt       # Python依赖
-├── package.json           # 根目录Node.js依赖
 ├── README.md              # 项目主文档
-├── app_debug.log          # 应用调试日志
-├── app/                   # 应用主目录
+├── app.py                 # Flask后端应用入口
+├── docker-compose.yml     # Docker Compose配置文件
+├── package-lock.json      # 根目录Node.js锁定文件
+├── package.json           # 根目录Node.js依赖 (例如用于工具脚本)
+├── requirements.txt       # Python依赖
+├── app/                   # 后端应用主目录
 │   ├── __init__.py        # 包初始化和应用工厂
-│   ├── extensions.py      # 扩展实例化
 │   ├── api/               # API路由模块
 │   │   ├── __init__.py    # 路由包初始化
 │   │   ├── files.py       # 文件路由
-│   │   ├── notes.py       # 笔记路由
 │   │   ├── folders.py     # 文件夹路由
-│   │   └── health.py      # 健康检查路由
+│   │   ├── health.py      # 健康检查路由
+│   │   └── notes.py       # 笔记路由
 │   ├── config/            # 配置模块
 │   │   ├── __init__.py    # 配置包初始化
 │   │   └── config.py      # 配置定义
+│   ├── extensions.py      # 扩展实例化
 │   ├── models/            # 数据库模型
 │   │   ├── __init__.py    # 模型包初始化
+│   │   ├── folder.py      # 文件夹模型
 │   │   ├── note.py        # 笔记模型
-│   │   ├── note_file.py   # 笔记文件模型
-│   │   └── folder.py      # 文件夹模型
-│   ├── services/          # 业务服务
+│   │   └── note_file.py   # 笔记文件模型
+│   ├── services/          # 业务逻辑服务 (当前为空)
 │   │   └── __init__.py    # 服务包初始化
 │   └── utils/             # 工具函数
 │       └── __init__.py    # 工具包初始化
@@ -160,45 +161,37 @@ NotesApplication/
 │   ├── CHANGELOG_EN.md    # 英文更新日志
 │   ├── DEPLOY_UBUNTU.md   # Ubuntu部署指南
 │   ├── DOCKER_DEPLOY.md   # Docker部署指南
-│   ├── ERROR_LOG.md       # 错误日志
-│   ├── git-operations.md  # Git操作指南
-│   ├── icons_summary.md   # 图标使用汇总
+│   ├── ERROR_LOG.md       # 错误日志与解决方案
 │   ├── OnePage_Propsal_EN.md # 英文提案
 │   ├── PPT_Content_Description.md # PPT内容描述
 │   ├── PPT_Outline.md     # PPT大纲
-│   ├── README_CN.md       # 中文README
+│   ├── README_CN.md       # 中文README (本文档)
 │   ├── README_EN.md       # 英文README
-│   └── Unfinished_Features.md # 未完成功能
-├── frontend/              # React前端应用
-│   ├── index.html         # HTML模板
-│   ├── Dockerfile         # 前端Docker配置
-│   ├── nginx.conf         # Nginx配置
-│   ├── package.json       # Node.js依赖配置
-│   ├── vite.config.js     # Vite配置
+│   ├── Unfinished_Features.md # 未完成功能清单
+│   ├── git-operations.md  # Git操作指南
+│   └── icons_summary.md   # 图标使用汇总
+├── frontend/              # 前端应用 (React + Vite)
+│   ├── .env.development   # 开发环境变量
+│   ├── Dockerfile         # 前端Docker配置文件
+│   ├── index.html         # HTML入口文件
+│   ├── nginx.conf         # Docker部署Nginx配置
+│   ├── package-lock.json  # Node.js锁定文件
+│   ├── package.json       # Node.js依赖
+│   ├── vite.config.js     # Vite配置文件
 │   └── src/               # 源代码
 │       ├── App.jsx        # 主应用组件
-│       ├── index.css      # 主CSS文件
-│       ├── main.jsx       # 应用入口
-│       ├── components/    # React组件
-│       │   ├── NoteEditor.jsx    # 笔记编辑器组件
-│       │   ├── NoteList.jsx      # 笔记列表组件
-│       │   ├── Sidebar.jsx       # 侧边栏组件
-│       │   └── TipTapEditor.jsx  # TipTap编辑器组件
-│       ├── hooks/         # 自定义钩子
-│       │   ├── useDragAndDrop.js       # 拖放钩子
-│       │   └── useFileDragAndDrop.js   # 文件拖放钩子
-│       ├── services/      # API服务
-│       │   └── noteService.js    # 笔记服务
+│       ├── components/    # 可复用UI组件
+│       ├── hooks/         # 自定义React钩子
+│       ├── index.css      # 全局样式
+│       ├── main.jsx       # 应用入口文件
+│       ├── services/      # API交互服务
 │       └── utils/         # 工具函数
-│           ├── dnd-utils.jsx       # 拖放工具
-│           ├── dndkit-installer.jsx # DnD工具安装器
-│           ├── dndWrapper.js        # DnD包装器
-│           └── dndWrapper.jsx        # DnD JSX包装器
-├── tests/                # 测试目录
-│   └── test_app.py       # 应用测试
-└── tools/                # 工具脚本
-    └── sync_docs.py      # 文档同步工具
+├── tests/                 # 测试文件
+│   └── test_app.py        # 后端应用测试
+└── tools/                 # 工具脚本
+    └── sync_docs.py       # 文档同步脚本
 ```
+*(注意: `notes.db` 和 `app_debug.log` 文件被省略，因为它们通常是生成文件或被git忽略)*
 
 ## 开发计划
 
