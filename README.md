@@ -247,7 +247,7 @@ NotesApplication/
 ### 新增功能
 
 - [x] Support multiple note formats (text, headings, lists, quotes, etc.)
-- [ ] Add note folder creation functionality in the left sidebar
+- [x] Add note folder creation functionality in the left sidebar
 - [ ] Add user authentication system
 - [ ] Support note tags and categories
 - [ ] Add note search functionality
@@ -256,7 +256,7 @@ NotesApplication/
 - [ ] Support dark mode
 
 - [x] 支持多种笔记格式（文本、标题、列表、引用等）
-- [ ] 新增左侧建立笔记文件夹功能
+- [x] 新增左侧建立笔记文件夹功能
 - [ ] 添加用户认证系统
 - [ ] 支持笔记标签和分类
 - [ ] 添加笔记搜索功能

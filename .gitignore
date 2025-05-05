@@ -29,3 +29,6 @@ build/
 # System Files
 .DS_Store
 Thumbs.db
+
+# Codes Counter
+.VSCodeCounter/
