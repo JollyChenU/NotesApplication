@@ -32,3 +32,8 @@ Thumbs.db
 
 # Codes Counter
 .VSCodeCounter/
+
+# Documentation - Presentation and Report files
+docs/OnePage_*
+docs/PPT_*
+docs/REPORT_*
