@@ -52,7 +52,17 @@ def create_note(file_id):
     )
     db.session.add(new_note)
     db.session.commit()
-    return jsonify({'message': 'Note created successfully', 'id': new_note.id}), 201
+    
+    # 返回完整的笔记对象
+    return jsonify({
+        'id': new_note.id,
+        'content': new_note.content,
+        'format': new_note.format,
+        'order': new_note.order,
+        'file_id': new_note.file_id,
+        'created_at': new_note.created_at.isoformat() if new_note.created_at else None,
+        'updated_at': new_note.updated_at.isoformat() if new_note.updated_at else None
+    }), 201
 
 @notes_bp.route('/notes/<int:note_id>', methods=['GET'])
 def get_note(note_id):

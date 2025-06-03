@@ -58,6 +58,111 @@ npm run dev
 3. Open browser and visit:<br>打开浏览器访问：
 http://localhost:5173
 
+## External Network Access (Testing Environment)
+## 外网访问配置（测试环境）
+
+To access the application from external networks, follow these steps:
+要从外网访问应用程序，请按照以下步骤操作：
+
+### 1. Network Configuration / 网络配置
+
+**Windows Firewall Configuration:**
+**Windows防火墙配置：**
+
+```powershell
+# Allow Flask port (5000) through firewall
+# 允许Flask端口(5000)通过防火墙
+netsh advfirewall firewall add rule name="Flask App Port 5000" dir=in action=allow protocol=TCP localport=5000
+
+# Allow Frontend port (5173) through firewall  
+# 允许前端端口(5173)通过防火墙
+netsh advfirewall firewall add rule name="Vite Dev Server Port 5173" dir=in action=allow protocol=TCP localport=5173
+```
+
+### 2. Get Your IP Address / 获取IP地址
+
+```powershell
+# Get your local IP address
+# 获取本机IP地址
+ipconfig
+```
+
+### 3. Update Frontend Configuration / 更新前端配置
+
+Edit `frontend/.env` file and replace `localhost` with your actual IP:
+编辑 `frontend/.env` 文件，将 `localhost` 替换为您的实际IP：
+
+```env
+# Replace YOUR_EXTERNAL_IP with your actual IP address
+# 将 YOUR_EXTERNAL_IP 替换为您的实际IP地址
+VITE_API_URL=http://YOUR_EXTERNAL_IP:5000/api
+
+# Example / 示例：
+# VITE_API_URL=http://192.168.1.100:5000/api
+```
+
+### 4. Router Port Forwarding (If Behind Router) / 路由器端口转发（如果在路由器后面）
+
+If your computer is behind a router, configure port forwarding in your router's admin panel:
+如果您的电脑在路由器后面，需要在路由器管理界面设置端口转发：
+
+- **Internal IP / 内部IP:** Your computer's LAN IP / 您电脑的局域网IP
+- **Internal Port / 内部端口:** 5000 (Backend) and 5173 (Frontend) / 5000（后端）和5173（前端）
+- **External Port / 外部端口:** 5000 and 5173 (or custom ports) / 5000和5173（或自定义端口）
+- **Protocol / 协议:** TCP
+
+### 5. Access from External Networks / 外网访问
+
+After configuration, you can access the application using:
+配置完成后，您可以使用以下地址访问应用：
+
+- **Backend API:** `http://YOUR_IP:5000`
+- **Frontend App:** `http://YOUR_IP:5173`
+
+### 6. Testing Configuration / 测试配置
+
+To verify external access is working:
+要验证外网访问是否正常工作：
+
+```powershell
+# Test backend API health check
+# 测试后端API健康检查
+curl http://YOUR_IP:5000/api/health
+
+# Or use browser to test
+# 或使用浏览器测试
+# http://YOUR_IP:5000/api/health
+```
+
+**⚠️ Security Warning / 安全警告:**
+- This configuration is for **testing environments only**
+- 此配置**仅适用于测试环境**
+- Do not use in production without proper security measures
+- 生产环境请勿在没有适当安全措施的情况下使用
+- Consider adding authentication and HTTPS for production use
+- 生产环境建议添加认证和HTTPS
+
+### Network Access Troubleshooting / 网络访问故障排除
+
+**Common Issues and Solutions / 常见问题与解决方案:**
+
+1. **Cannot access from external network / 无法从外网访问:**
+   - Check firewall settings / 检查防火墙设置
+   - Verify router port forwarding / 验证路由器端口转发
+   - Ensure applications are running with correct host configuration / 确保应用以正确的主机配置运行
+
+2. **CORS errors in browser / 浏览器CORS错误:**
+   - Backend CORS is already configured to allow all origins for testing
+   - 后端CORS已配置为测试环境允许所有来源
+   - Make sure frontend is accessing the correct backend URL
+   - 确保前端访问正确的后端URL
+
+3. **Application not starting with 0.0.0.0 / 应用无法以0.0.0.0启动:**
+   - Check if ports 5000 and 5173 are already in use
+   - 检查端口5000和5173是否已被占用
+   - Use `netstat -an | findstr :5000` and `netstat -an | findstr :5173` to check
+   - 使用命令检查端口占用情况
+
 ## Technology Stack
 ## 技术栈
 
@@ -197,12 +302,12 @@ NotesApplication/
 │   ├── DEPLOY_UBUNTU.md   # Ubuntu deployment guide / Ubuntu部署指南
 │   ├── DOCKER_DEPLOY.md   # Docker deployment guide / Docker部署指南
 │   ├── ERROR_LOG.md       # Error logging and solutions / 错误日志与解决方案
-│   ├── OnePage_Propsal_EN.md # English proposal / 英文提案
-│   ├── PPT_Content_Description.md # PPT content description / PPT内容描述
-│   ├── PPT_Outline.md     # PPT outline / PPT大纲
+│   ├── OnePage_Propsal_EN.md # 英文提案
+│   ├── PPT_Content_Description.md # PPT内容描述
+│   ├── PPT_Outline.md     # PPT大纲
 │   ├── README_CN.md       # Chinese README / 中文README
 │   ├── README_EN.md       # English README / 英文README
-│   ├── Unfinished_Features.md # Unfinished features list / 未完成功能清单
+│   ├── Unfinished_Features.md # 未完成功能清单
 │   ├── git-operations.md  # Git operation guide / Git操作指南
 │   └── icons_summary.md   # Icons usage summary / 图标使用汇总
 ├── frontend/              # Frontend application (React + Vite) / 前端应用 (React + Vite)

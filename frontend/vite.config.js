@@ -21,12 +21,15 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0', // 监听所有网络接口，允许外网访问
+    port: 5173,      // 指定端口为5173
+    strictPort: true, // 如果端口被占用则直接失败，而不是尝试其他端口
     // 如果需要代理后端 API，可以在这里配置
     // proxy: {
     //   '/api': {
-    //     target: 'http://localhost:5000', // 后端 Flask 应用的地址
+    //     target: process.env.VITE_API_URL || 'http://localhost:5000', // 动态后端地址
     //     changeOrigin: true,
-    //     rewrite: (path) => path.replace(/^\/api/, '')
+    //     rewrite: (path) => path.replace(/^\/api/, '/api')
     //   }
     // }
   }

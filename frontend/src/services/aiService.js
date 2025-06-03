@@ -1,0 +1,257 @@
+/**
+ * AI优化服务
+ * 处理与AI相关的API调用
+ */
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+class AIService {
+    /**
+     * 收集指定文件的所有笔记内容
+     * @param {number} fileId - 文件ID
+     * @returns {Promise} 包含收集内容的响应
+     */
+    async collectFileContent(fileId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/collect-content`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ file_id: fileId })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('收集文件内容失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 对内容进行AI优化
+     * @param {number} fileId - 文件ID
+     * @param {string} content - 待优化的内容
+     * @param {string} type - 优化类型 (general, grammar, structure, clarity)
+     * @returns {Promise} 包含优化结果的响应
+     */
+    async optimizeContent(fileId, content, type = 'general') {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/optimize-content`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    file_id: fileId,
+                    content,
+                    type
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('AI优化失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 应用AI优化结果
+     * @param {number} fileId - 文件ID
+     * @param {string} optimizedContent - 优化后的内容
+     * @param {boolean} backupOriginal - 是否备份原始内容
+     * @returns {Promise} 应用结果响应
+     */
+    async applyOptimization(fileId, optimizedContent, backupOriginal = true) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/apply-optimization`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    file_id: fileId,
+                    optimized_content: optimizedContent,
+                    backup_original: backupOriginal
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('应用优化失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 检查AI服务健康状态
+     * @returns {Promise} 健康状态响应
+     */
+    async checkHealth() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/health`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('AI服务健康检查失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 完整的AI优化流程
+     * @param {number} fileId - 文件ID
+     * @param {string} optimizationType - 优化类型
+     * @returns {Promise} 完整流程结果
+     */
+    async performFullOptimization(fileId, optimizationType = 'general') {
+        try {
+            // 步骤1: 收集文件内容
+            console.log('正在收集文件内容...');
+            const contentResult = await this.collectFileContent(fileId);
+            
+            if (!contentResult.success || !contentResult.collected_content) {
+                throw new Error('无法收集文件内容');
+            }
+
+            // 步骤2: AI优化内容
+            console.log('正在进行AI优化...');
+            const optimizationResult = await this.optimizeContent(
+                fileId, 
+                contentResult.collected_content, 
+                optimizationType
+            );
+
+            if (!optimizationResult.success) {
+                throw new Error('AI优化失败');
+            }
+
+            return {
+                success: true,
+                originalContent: contentResult.collected_content,
+                optimizedContent: optimizationResult.optimized_content,
+                report: optimizationResult.report,
+                fileInfo: {
+                    id: fileId,
+                    name: contentResult.file_name,
+                    totalNotes: contentResult.total_notes
+                }
+            };
+
+        } catch (error) {
+            console.error('完整AI优化流程失败:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * 获取临时文件列表
+     * @param {number} fileId - 可选的文件ID，如果提供则只返回该文件的临时文件
+     * @returns {Promise} 包含临时文件列表的响应
+     */
+    async getTempFiles(fileId = null) {
+        try {
+            const url = fileId 
+                ? `${API_BASE_URL}/ai/temp-files?file_id=${fileId}`
+                : `${API_BASE_URL}/ai/temp-files`;
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('获取临时文件列表失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 清理临时文件
+     * @param {number} fileId - 可选的文件ID，如果提供则只清理该文件的临时文件
+     * @param {number} daysOld - 清理多少天前的文件，默认7天
+     * @returns {Promise} 包含清理结果的响应
+     */
+    async cleanupTempFiles(fileId = null, daysOld = 7) {
+        try {
+            const requestBody = { days_old: daysOld };
+            if (fileId) {
+                requestBody.file_id = fileId;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/ai/cleanup-temp-files`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('清理临时文件失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 获取临时文件内容
+     * @param {string} filename - 临时文件名
+     * @returns {Promise} 包含文件内容的响应
+     */
+    async getTempFileContent(filename) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/temp-file/${filename}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('获取临时文件内容失败:', error);
+            throw error;
+        }
+    }
+}
+
+// 创建单例实例
+const aiService = new AIService();
+
+export default aiService;

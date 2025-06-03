@@ -27,6 +27,7 @@ from app.api.files import files_bp
 from app.api.notes import notes_bp
 from app.api.folders import folders_bp
 from app.api.health import health_bp
+from app.api.ai import ai_bp
 from app.config import config
 
 # 设置更详细的日志记录
@@ -45,14 +46,13 @@ def create_app(config_name='default'):
     app = Flask(__name__)
     
     # 加载配置
-    app.config.from_object(config[config_name])
-    
-    # 改进CORS配置，确保前端可以访问
+    app.config.from_object(config[config_name])    # 改进CORS配置，支持外网IP访问
     CORS(app, resources={
         r"/*": {
-            "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
+            "origins": "*",  # 允许所有来源（测试环境）
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+            "supports_credentials": False
         }
     })
     
@@ -77,14 +77,13 @@ def create_app(config_name='default'):
                 logger.debug('【响应数据】%s', response.get_json())
             except:
                 pass
-        return response
-    
-    # 注册蓝图
+        return response    # 注册蓝图
     app.register_blueprint(api)
     app.register_blueprint(files_bp, url_prefix='/api')
     app.register_blueprint(notes_bp, url_prefix='/api')
     app.register_blueprint(folders_bp, url_prefix='/api')
     app.register_blueprint(health_bp, url_prefix='/api')
+    app.register_blueprint(ai_bp, url_prefix='/api')  # 新的模块化AI API
     
     # 创建数据库表
     with app.app_context():

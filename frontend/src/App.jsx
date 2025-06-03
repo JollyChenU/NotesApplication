@@ -27,6 +27,7 @@ import Sidebar from './components/Sidebar';
 import NoteList from './components/NoteList';
 import AppHeader from './components/AppHeader';
 import DeleteFileDialog from './components/DeleteFileDialog';
+import AIOptimizeDialog from './components/AIOptimizeDialog';
 import { useApiStatus } from './hooks/useApiStatus';
 import { useFolders } from './hooks/useFolders';
 import { useFiles } from './hooks/useFiles';
@@ -72,33 +73,43 @@ function App() {
     updateNoteOrder,
     handleNoteUpdateFromEditor,
   } = useNotes(activeFileId, setErrorMessage);
-
   // 5. 删除确认对话框状态
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  // 6. AI优化对话框状态
+  const [aiOptimizeDialogOpen, setAiOptimizeDialogOpen] = useState(false);
   // 初始化加载数据
   React.useEffect(() => {
     const initialize = async () => {
+      console.log('🚀 开始初始化应用...');
       const isHealthy = await checkApiHealth();
+      console.log('🏥 API健康检查结果:', isHealthy);
+      
       if (isHealthy) {
         try {
+          console.log('📂 开始获取文件和文件夹...');
           const [fetchedFiles, fetchedFolders] = await Promise.all([
             fetchFiles(),
             fetchFolders(),
           ]);
+          console.log('📂 获取到的文件:', fetchedFiles);
+          console.log('📁 获取到的文件夹:', fetchedFolders);
+          
           // 如果获取到文件且当前没有激活文件，则激活第一个
           if (fetchedFiles.length > 0 && !activeFileId) {
             setActiveFileId(fetchedFiles[0].id);
+            console.log('🎯 激活文件:', fetchedFiles[0].id);
           }
         } catch (error) {
-          console.error("Initialization failed:", error);
+          console.error("❌ 初始化失败:", error);
         }
+      } else {
+        console.warn('⚠️ API健康检查失败，跳过数据获取');
       }
     };
     initialize();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 初始加载，依赖项为空
-
   // 删除文件夹后刷新文件列表
   const handleDeleteFolder = useCallback(async (folderId) => {
     const success = await deleteFolder(folderId);
@@ -106,6 +117,24 @@ function App() {
       await fetchFiles(); // 文件夹删除成功后，刷新文件列表
     }
   }, [deleteFolder, fetchFiles]);
+
+  // 处理创建笔记点击事件
+  const handleCreateNoteClick = useCallback(async () => {
+    console.log('🔘 + 按钮被点击，开始创建笔记...');
+    if (!activeFileId) {
+      setErrorMessage('请先选择一个文件');
+      return;
+    }
+    
+    try {
+      // 在末尾创建新笔记，所以 afterNoteId 为 null
+      const newNoteId = await createNote(null, '', 'text');
+      console.log('✅ 成功创建笔记，ID:', newNoteId);
+    } catch (error) {
+      console.error('❌ 创建笔记失败:', error);
+      setErrorMessage('创建笔记失败: ' + error.message);
+    }
+  }, [activeFileId, createNote, setErrorMessage]);
 
   // 打开删除文件对话框
   const openDeleteDialog = useCallback(() => {
@@ -122,17 +151,29 @@ function App() {
       }
     }
   }, [activeFileId, deleteFile]);
-
-  // AI优化内容处理（接口预留）
+  // AI优化内容处理
   const handleAIOptimize = useCallback(() => {
-    if (!activeFileId || !notes || notes.length === 0) {
-      setErrorMessage('没有可优化的内容');
+    if (!activeFileId) {
+      setErrorMessage('请先选择一个文件');
       return;
     }
 
-    // TODO: 实现AI优化功能
-    setErrorMessage('AI优化功能开发中...');
-  }, [activeFileId, notes, setErrorMessage]);
+    setAiOptimizeDialogOpen(true);
+  }, [activeFileId, setErrorMessage]);
+
+  // AI优化对话框关闭处理
+  const handleAIOptimizeDialogClose = useCallback((applied) => {
+    setAiOptimizeDialogOpen(false);
+    
+    if (applied) {
+      // 如果应用了优化，重新加载笔记数据
+      setErrorMessage('AI优化已应用，正在刷新数据...');
+      setTimeout(() => {
+        // 这里应该重新获取笔记数据
+        window.location.reload(); // 简单粗暴的刷新方式
+      }, 1000);
+    }
+  }, [setErrorMessage]);
 
   // 统一的拖放结束处理
   const handleDragEnd = useCallback((result) => {
@@ -225,7 +266,7 @@ function App() {
               onFileNameBlur={handleFileNameBlur}
               onFileNameClick={handleFileNameClick}
               onDeleteFileClick={openDeleteDialog}
-              onCreateNoteClick={createNote}
+              onCreateNoteClick={handleCreateNoteClick}
               onAIOptimizeClick={handleAIOptimize}
               isLoading={isApiLoading}
             />
@@ -255,13 +296,19 @@ function App() {
               </Container>
             </Box>
           </Box>
-        </Box>
-
-        {/* 删除文件确认对话框 */}
+        </Box>        {/* 删除文件确认对话框 */}
         <DeleteFileDialog
           open={deleteDialogOpen}
           onClose={() => setDeleteDialogOpen(false)}
           onConfirm={confirmDeleteFile}
+          fileName={activeFile?.name}
+        />
+
+        {/* AI优化对话框 */}
+        <AIOptimizeDialog
+          open={aiOptimizeDialogOpen}
+          onClose={handleAIOptimizeDialogClose}
+          fileId={activeFileId}
           fileName={activeFile?.name}
         />
       </Box>
