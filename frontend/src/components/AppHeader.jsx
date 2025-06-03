@@ -6,6 +6,7 @@ import React from 'react';
 import { Box, Typography, IconButton, TextField } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
 const AppHeader = ({
   activeFile,
@@ -17,6 +18,7 @@ const AppHeader = ({
   onFileNameClick,
   onDeleteFileClick,
   onCreateNoteClick,
+  onAIOptimizeClick, // AI优化回调
   isLoading, // 添加加载状态
 }) => {
   const fileName = activeFile?.name || '选择一个文件';
@@ -70,17 +72,28 @@ const AppHeader = ({
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
+        )}      </Box>
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        {activeFile && !isLoading && ( // 只有选中文件且不在加载时才显示AI优化按钮
+          <IconButton
+            onClick={onAIOptimizeClick}
+            color="secondary"
+            size="large"
+            title="AI优化内容"
+          >
+            <AutoFixHighIcon />
+          </IconButton>
         )}
+        <IconButton
+          onClick={onCreateNoteClick}
+          color="primary"
+          size="large"
+          disabled={!activeFile || isLoading} // 只有选中文件且不在加载时才能添加笔记
+          title="添加新笔记"
+        >
+          <AddIcon />
+        </IconButton>
       </Box>
-      <IconButton
-        onClick={onCreateNoteClick}
-        color="primary"
-        size="large"
-        disabled={!activeFile || isLoading} // 只有选中文件且不在加载时才能添加笔记
-        title="添加新笔记"
-      >
-        <AddIcon />
-      </IconButton>
     </Box>
   );
 };

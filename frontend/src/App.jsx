@@ -113,7 +113,6 @@ function App() {
       setDeleteDialogOpen(true);
     }
   }, [activeFileId]);
-
   // 确认删除文件
   const confirmDeleteFile = useCallback(async () => {
     if (activeFileId) {
@@ -123,6 +122,17 @@ function App() {
       }
     }
   }, [activeFileId, deleteFile]);
+
+  // AI优化内容处理（接口预留）
+  const handleAIOptimize = useCallback(() => {
+    if (!activeFileId || !notes || notes.length === 0) {
+      setErrorMessage('没有可优化的内容');
+      return;
+    }
+
+    // TODO: 实现AI优化功能
+    setErrorMessage('AI优化功能开发中...');
+  }, [activeFileId, notes, setErrorMessage]);
 
   // 统一的拖放结束处理
   const handleDragEnd = useCallback((result) => {
@@ -206,8 +216,7 @@ function App() {
 
           {/* 主要内容区 */}
           <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* 头部 */}
-            <AppHeader
+            {/* 头部 */}            <AppHeader
               activeFile={activeFile}
               isEditingFileName={isEditingFileName}
               editingFileName={editingFileName}
@@ -217,6 +226,7 @@ function App() {
               onFileNameClick={handleFileNameClick}
               onDeleteFileClick={openDeleteDialog}
               onCreateNoteClick={createNote}
+              onAIOptimizeClick={handleAIOptimize}
               isLoading={isApiLoading}
             />
 
