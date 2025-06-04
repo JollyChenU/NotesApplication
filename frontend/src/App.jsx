@@ -81,34 +81,25 @@ function App() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // 6. AI优化对话框状态
-  const [aiOptimizeDialogOpen, setAiOptimizeDialogOpen] = useState(false);
-  // 初始化加载数据
+  const [aiOptimizeDialogOpen, setAiOptimizeDialogOpen] = useState(false);  // 初始化加载数据
   React.useEffect(() => {
     const initialize = async () => {
-      console.log('🚀 开始初始化应用...');
       const isHealthy = await checkApiHealth();
-      console.log('🏥 API健康检查结果:', isHealthy);
       
       if (isHealthy) {
         try {
-          console.log('📂 开始获取文件和文件夹...');
           const [fetchedFiles, fetchedFolders] = await Promise.all([
             fetchFiles(),
             fetchFolders(),
           ]);
-          console.log('📂 获取到的文件:', fetchedFiles);
-          console.log('📁 获取到的文件夹:', fetchedFolders);
           
           // 如果获取到文件且当前没有激活文件，则激活第一个
           if (fetchedFiles.length > 0 && !activeFileId) {
             setActiveFileId(fetchedFiles[0].id);
-            console.log('🎯 激活文件:', fetchedFiles[0].id);
           }
         } catch (error) {
           console.error("❌ 初始化失败:", error);
         }
-      } else {
-        console.warn('⚠️ API健康检查失败，跳过数据获取');
       }
     };
     initialize();
@@ -121,10 +112,8 @@ function App() {
       await fetchFiles(); // 文件夹删除成功后，刷新文件列表
     }
   }, [deleteFolder, fetchFiles]);
-
   // 处理创建笔记点击事件
   const handleCreateNoteClick = useCallback(async () => {
-    console.log('🔘 + 按钮被点击，开始创建笔记...');
     if (!activeFileId) {
       setErrorMessage('请先选择一个文件');
       return;
@@ -133,7 +122,6 @@ function App() {
     try {
       // 在末尾创建新笔记，所以 afterNoteId 为 null
       const newNoteId = await createNote(null, '', 'text');
-      console.log('✅ 成功创建笔记，ID:', newNoteId);
     } catch (error) {
       console.error('❌ 创建笔记失败:', error);
       setErrorMessage('创建笔记失败: ' + error.message);
@@ -278,16 +266,15 @@ function App() {
             {/* 笔记列表 */}
             <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
               <Container maxWidth="xl" sx={{ pt: 0, pb: 4 }}>
-                <ErrorBoundary>
-                  {activeFileId && ( // Only render NoteList if a file is active
+                <ErrorBoundary>                  {activeFileId && ( // Only render NoteList if a file is active
                     <NoteList
                       notes={notes}
                       setNotes={setNotes} // Pass setNotes if needed for local updates
                       activeNoteId={activeNoteId}
                       setActiveNoteId={setActiveNoteId}
-                      onUpdateNote={handleNoteUpdateFromEditor} // Pass the combined handler
-                      onDeleteNote={deleteNote}
-                      onUpdateNoteOrder={updateNoteOrder}
+                      onUpdate={handleNoteUpdateFromEditor} // Pass the combined handler - 修复属性名
+                      onDelete={deleteNote} // 修复属性名
+                      onReorder={updateNoteOrder} // 修复属性名
                       setErrorMessage={setErrorMessage}
                     />
                   )}

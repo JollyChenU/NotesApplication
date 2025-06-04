@@ -167,13 +167,12 @@ const Sidebar = ({
     };
   }, []);
   
-  // 组件挂载/卸载日志
+  // 组件挂载/卸载日志  // 监听组件卸载
   React.useEffect(() => {
-    SidebarLogger.info(`侧边栏渲染: 文件数=${files.length}, 文件夹数=${folders.length}`);
     return () => {
       SidebarLogger.debug('侧边栏卸载');
     };
-  }, [files.length, folders.length]);
+  }, []);
   
   // 确保拖拽后文件项可点击
   React.useEffect(() => {

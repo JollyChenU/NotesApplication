@@ -34,19 +34,14 @@ export function useNotes(activeFileId, setErrorMessage) {
   // 初始加载笔记
   useEffect(() => {
     fetchNotes();
-  }, [fetchNotes]);
-  // 创建新笔记 (确保返回 Promise<string | null>)
+  }, [fetchNotes]);  // 创建新笔记 (确保返回 Promise<string | null>)
   const createNote = useCallback(async (afterNoteId, content = '', format = 'text') => {
-    console.log('🔥 createNote函数被调用:', { activeFileId, afterNoteId, content, format });
-    
     if (!activeFileId) {
-      console.error('❌ 无法创建笔记：未选择文件');
       setErrorMessage('无法创建笔记：未选择文件');
       return null;
     }
-    try {      console.log('📤 正在调用noteService.createNote...');
+    try {
       const newNote = await noteService.createNote(activeFileId, afterNoteId, content, format);
-      console.log('✅ 成功创建笔记:', newNote);
       // Update local state immediately
       setNotes(prevNotes => {
         const insertIndex = prevNotes.findIndex(note => note.id === afterNoteId);
@@ -56,19 +51,15 @@ export function useNotes(activeFileId, setErrorMessage) {
         } else {
           newNotes.push(newNote); // Fallback: add to end if afterNoteId not found
         }
-        console.log('📝 更新本地笔记状态:', newNotes);
         return newNotes;
       });
-      console.log('🎯 返回新笔记ID:', newNote.id);
       return newNote.id; // Return the new note ID
     } catch (error) {
       console.error('❌ 创建笔记失败:', error);
       setErrorMessage('创建笔记失败: ' + (error.response?.data?.message || error.message));
       return null;
     }
-  }, [activeFileId, setErrorMessage]);
-
-  // 更新笔记 (确保返回 Promise<void>)
+  }, [activeFileId, setErrorMessage]);  // 更新笔记 (确保返回 Promise<void>)
   const updateNote = useCallback(async (noteId, contentData) => {
     try {
       await noteService.updateNote(noteId, contentData);
@@ -79,6 +70,7 @@ export function useNotes(activeFileId, setErrorMessage) {
         )
       );
     } catch (error) {
+      console.error('❌ 更新笔记失败:', error);
       setErrorMessage('更新笔记失败: ' + (error.response?.data?.message || error.message));
     }
   }, [setErrorMessage]);
@@ -107,9 +99,7 @@ export function useNotes(activeFileId, setErrorMessage) {
       // Consider refetching notes on failure to ensure consistency
       fetchNotes();
     }
-  }, [setErrorMessage, fetchNotes]);
-
-  // 处理 TipTapEditor 的 onUpdate 回调，区分创建和更新 (Refactored)
+  }, [setErrorMessage, fetchNotes]);  // 处理 TipTapEditor 的 onUpdate 回调，区分创建和更新
   const handleNoteUpdateFromEditor = useCallback(async (idOrNewData, contentData) => {
     // Check if the first argument is the object for creating a new note (check for afterNoteId)
     if (typeof idOrNewData === 'object' && idOrNewData !== null && idOrNewData.afterNoteId !== undefined) {
@@ -125,9 +115,9 @@ export function useNotes(activeFileId, setErrorMessage) {
       return Promise.resolve();
     }
     // Log error and reject if arguments are invalid
-    console.error("Invalid arguments for handleNoteUpdateFromEditor:", idOrNewData, contentData);
+    console.error("❌ handleNoteUpdateFromEditor参数无效:", idOrNewData, contentData);
     return Promise.reject("Invalid arguments for handleNoteUpdateFromEditor");
-  }, [createNote, updateNote]); // Dependencies: createNote and updateNote
+  }, [createNote, updateNote]);
 
   return {
     notes,
