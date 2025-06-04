@@ -44,33 +44,38 @@ const TipTapEditor = ({
       if (onFocus) onFocus(note.id);
     },
     onBlur: onBlur, // Keep onBlur
-  });
-
-  // Debounced update function
-  const debouncedUpdate = useCallback(debounce((id, content) => {
-      if (onUpdate) { // onUpdate is handleNoteUpdateFromEditor
-          onUpdate(id, content);
+  });  // Debounced update function
+  const debouncedUpdate = useCallback(debounce((noteId, contentData) => {
+      if (onUpdate) {
+          onUpdate(noteId, contentData);
       }
-  }, 500), [onUpdate]); // Adjust delay as needed
-
-  // Trigger debounced update when editor content changes
+  }, 500), [onUpdate]);  // Trigger debounced update when editor content changes
    useEffect(() => {
-    if (!editor) {
+    if (!editor || !note?.id) {
       return;
     }
+    
     const handleUpdate = () => {
         const htmlContent = editor.getHTML();
+        
         // Avoid updating if content is just the initial empty paragraph or unchanged
-        if (htmlContent === '<p></p>' && (note?.content === '' || note?.content === '<p></p>')) return;
-        if (htmlContent === note?.content) return;
+        if (htmlContent === '<p></p>' && (note?.content === '' || note?.content === '<p></p>')) {
+            return;
+        }
+        if (htmlContent === note?.content) {
+            return;
+        }
 
+        // Trigger debounced update with correct parameters
         debouncedUpdate(note.id, { content: htmlContent, format: note.format });
     };
+    
     editor.on('update', handleUpdate);
+    
     return () => {
       editor.off('update', handleUpdate);
     };
-  }, [editor, note?.id, note?.content, note?.format, debouncedUpdate]); // Add note?.content to dependencies
+  }, [editor, note?.id, debouncedUpdate]);
 
 
   // Simplified effect to sync external note content changes to the editor
