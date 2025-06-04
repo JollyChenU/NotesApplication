@@ -1,6 +1,13 @@
 /**
- * @description 文件删除确认对话框
- * @license Apache-2.0
+ * 文件名: DeleteFileDialog.jsx
+ * 组件: 文件删除确认对话框
+ * 描述: 文件删除操作的确认对话框组件，提供安全的删除确认机制
+ * 功能: 删除确认、用户交互、安全提示、操作取消
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.1.0
+ * 依赖: React, Material-UI Dialog
+ * 许可证: Apache-2.0
  */
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';

@@ -1,9 +1,13 @@
 /**
- * @author Jolly
- * @date 2025-05-01 (Refactored)
- * @description 主应用组件，协调侧边栏和笔记列表
- * @version 1.3.0
- * @license Apache-2.0
+ * 文件名: App.jsx
+ * 组件: 主应用组件
+ * 描述: 笔记应用的根组件，协调侧边栏和笔记编辑器的交互，管理全局状态
+ * 功能: 应用布局、状态管理、组件协调、错误边界
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.3.0
+ * 依赖: React, TipTap Editor, Sidebar, ErrorBoundary
+ * 许可证: Apache-2.0
  */
 
 /*

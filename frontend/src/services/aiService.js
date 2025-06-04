@@ -1,6 +1,13 @@
 /**
- * AI优化服务
- * 处理与AI相关的API调用
+ * 文件名: aiService.js
+ * 组件: AI服务
+ * 描述: 处理与AI相关的API调用，包括内容收集、AI优化、内容应用等功能
+ * 功能: AI内容优化、文本收集、内容应用、API通信、错误处理
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.3.0
+ * 依赖: Fetch API
+ * 许可证: Apache-2.0
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';

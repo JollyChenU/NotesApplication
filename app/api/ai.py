@@ -1,7 +1,35 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
-AI API - 提供AI相关的API接口
-包含数据整理、AI优化、数据返回三个主要功能
+文件名: ai.py
+模块: AI API路由
+描述: 提供AI相关的API接口，包含数据整理、AI优化、数据返回三个主要功能
+功能:
+    - 数据收集和整理API
+    - AI内容优化API
+    - 结果应用和备份管理API
+    - 临时文件管理API
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.2.0
+
+依赖:
+    - Flask: Web框架
+    - app.services: 业务服务模块
+
+API端点:
+    - POST /api/ai/collect-content: 收集内容
+    - POST /api/ai/optimize-content: 优化内容
+    - POST /api/ai/apply-optimization: 应用优化结果
+    - GET /api/ai/temp-files: 获取临时文件列表
+
+许可证: Apache-2.0
 """
+
 import os
 from flask import Blueprint, request, jsonify, send_file
 from app.services.data_processor import DataProcessor

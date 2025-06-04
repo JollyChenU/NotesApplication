@@ -1,9 +1,37 @@
 /**
- * @author Jolly
- * @date 2025-05-01 (Refactored)
- * @description 侧边栏组件，提供文件导航、文件夹管理功能
- * @version 1.3.2
- * @license Apache-2.0
+ * 文件名: Sidebar.jsx
+ * 组件: 侧边栏组件
+ * 描述: 提供文件导航、文件夹管理和文件操作功能的侧边栏界面
+ * 功能: 文件导航、文件夹管理、拖拽排序、文件操作、搜索过滤
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.4.0
+ * 依赖: React, Material-UI, @dnd-kit/core, FolderList, FileItem
+ * 许可证: Apache-2.0
+ * 
+ * Props:
+ *   - files: 文件列表数组
+ *   - activeFileId: 当前活跃文件ID
+ *   - folders: 文件夹列表数组
+ *   - onFileSelect: 文件选择回调函数
+ *   - onCreateFile: 创建文件回调函数
+ *   - onDeleteFile: 删除文件回调函数
+ *   - onUpdateFileOrder: 更新文件顺序回调函数
+ *   - onMoveFileToFolder: 移动文件到文件夹回调函数
+ *   - setErrorMessage: 错误消息设置函数
+ * 
+ * 功能:
+ *   - 文件列表展示和管理
+ *   - 拖拽排序支持
+ *   - 文件夹分组管理
+ *   - 文件重命名和删除
+ *   - 响应式侧边栏布局
+ * 
+ * 作者: Jolly
+ * 创建时间: 2025-04-01
+ * 最后修改: 2025-06-04
+ * 版本: 1.4.0
+ * 许可证: Apache-2.0
  */
 
 import React, { useState, useCallback, useRef, memo } from 'react';

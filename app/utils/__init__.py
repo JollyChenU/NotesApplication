@@ -1,14 +1,23 @@
-# Copyright 2025 Jolly Chen
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+文件名: __init__.py
+模块: 工具模块
+描述: 通用工具函数模块初始化文件
+功能:
+    - 工具函数导入管理
+    - 通用辅助方法
+    - 常用装饰器定义
+
+作者: Jolly
+创建时间: 2025-06-04
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.0.0
+
+许可证: Apache-2.0
+"""
 # See the License for the specific language governing permissions and
 # limitations under the License.
 

@@ -2,24 +2,53 @@
 # -*- coding: utf-8 -*-
 
 """
-@author Jolly
-@date 2025-04-01
-@description 文件管理相关路由
-@version 1.1.0
-@license Apache-2.0
+文件名: files.py
+模块: 文件管理API路由
+描述: 处理笔记文件相关的HTTP请求，包括文件的CRUD操作和排序管理
+功能:
+    - 文件的创建、读取、更新、删除操作
+    - 文件排序和重新排列
+    - 文件夹关联管理
+    - 错误处理和日志记录
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.2.0
+
+依赖:
+    - Flask: Web框架
+    - SQLAlchemy: ORM数据库操作
+    - app.models: 数据模型
+
+API端点:
+    - GET /api/files: 获取文件列表
+    - POST /api/files: 创建新文件
+    - PUT /api/files/<id>: 更新文件信息
+    - DELETE /api/files/<id>: 删除文件
+    - PUT /api/files/reorder: 重新排序文件
+
+许可证: Apache-2.0
 """
 
+# 标准库导入
 import logging
 import time
 import traceback
+
+# 第三方库导入
 from flask import Blueprint, request, jsonify
-from app.extensions import db  # 更新导入路径
-from app.models.note_file import NoteFile  # 导入路径已正确更新
+
+# 本地应用导入
+from app.extensions import db
+from app.models.note_file import NoteFile
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('files_routes')
 
+# 创建蓝图
 files_bp = Blueprint('files_bp', __name__)
 
 @files_bp.route('/files/reorder', methods=['PUT'])
@@ -94,45 +123,74 @@ def get_files():
 
 @files_bp.route('/files', methods=['POST'])
 def create_file():
-    """创建新的笔记文件"""
-    data = request.get_json()
-    base_name = data['name']
+    """创建新的笔记文件
     
-    logger.info(f"📝 创建新文件，基础名称: {base_name}")
-    
-    # 检查文件名是否存在，如果存在则添加数字后缀
-    counter = 0
-    new_name = base_name
-    while NoteFile.query.filter_by(name=new_name).first() is not None:
-        counter += 1
-        new_name = f"{base_name}_{counter}"
-        logger.info(f"⚠️ 文件名已存在，尝试新名称: {new_name}")
-    
-    # 获取当前最大的order值
-    max_order = db.session.query(db.func.max(NoteFile.order)).scalar() or 0
-    
-    # 创建新文件，order设置为最大值加1
-    new_file = NoteFile(name=new_name, order=max_order + 1)
-    db.session.add(new_file)
-    
+    Returns:
+        201: 文件创建成功
+        400: 请求参数错误
+        409: 文件名冲突
+        500: 服务器内部错误
+    """
     try:
+        # 输入验证
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({
+                'error': 'INVALID_INPUT',
+                'message': 'File name is required',
+                'details': 'Request body must contain a "name" field'
+            }), 400
+        
+        base_name = data['name'].strip()
+        if not base_name:
+            return jsonify({
+                'error': 'INVALID_INPUT',
+                'message': 'File name cannot be empty'
+            }), 400
+        
+        logger.info(f"📝 创建新文件请求: {base_name}")
+        
+        # 处理文件名冲突
+        counter = 0
+        new_name = base_name
+        while NoteFile.query.filter_by(name=new_name).first() is not None:
+            counter += 1
+            new_name = f"{base_name}_{counter}"
+            logger.info(f"⚠️ 文件名已存在，尝试新名称: {new_name}")
+        
+        # 获取当前最大的order值
+        max_order = db.session.query(db.func.max(NoteFile.order)).scalar() or 0
+        
+        # 创建新文件
+        new_file = NoteFile(name=new_name, order=max_order + 1)
+        db.session.add(new_file)
+        
         start_time = time.time()
         db.session.commit()
-        logger.info(f"✅ 文件创建成功: ID = {new_file.id}, 名称 = {new_name}, 处理时间: {time.time() - start_time:.2f}秒")
+        
+        processing_time = time.time() - start_time
+        logger.info(f"✅ 文件创建成功: ID={new_file.id}, 名称={new_name}, 处理时间={processing_time:.2f}秒")
+        
+        return jsonify({
+            'success': True,
+            'message': 'File created successfully',
+            'data': {
+                'id': new_file.id,
+                'name': new_file.name,
+                'order': new_file.order,
+                'created_at': new_file.created_at.isoformat()
+            }
+        }), 201
+        
     except Exception as e:
         db.session.rollback()
         logger.error(f"❌ 文件创建失败: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({
-            'error': 'Database error',
-            'message': 'Failed to create new file'
+            'error': 'INTERNAL_SERVER_ERROR',
+            'message': 'Failed to create file',
+            'details': 'An unexpected error occurred while processing the request'
         }), 500
-    
-    return jsonify({
-        'message': 'File created successfully',
-        'id': new_file.id,
-        'name': new_file.name
-    }), 201
 
 @files_bp.route('/files/<int:file_id>', methods=['PUT'])
 def update_file(file_id):

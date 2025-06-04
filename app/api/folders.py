@@ -1,9 +1,28 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
-@author Jolly
-@date 2025-04-01
-@description 文件夹API路由
-@version 1.0.0
-@license Apache-2.0
+文件名: folders.py
+模块: API路由 - 文件夹管理
+描述: 文件夹相关的REST API端点，包括创建、查询、更新、删除操作
+功能:
+    - GET /api/folders - 获取文件夹列表
+    - POST /api/folders - 创建新文件夹
+    - PUT /api/folders/<id> - 更新文件夹信息
+    - DELETE /api/folders/<id> - 删除文件夹
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.0.0
+
+依赖:
+    - flask: Web框架
+    - app.models.folder: 文件夹数据模型
+    - app.models.note_file: 笔记文件数据模型
+
+许可证: Apache-2.0
 """
 
 from flask import Blueprint, request, jsonify

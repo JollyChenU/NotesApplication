@@ -1,6 +1,30 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
-数据处理服务 - 负责将笔记文件整理成txt格式
+文件名: data_processor.py
+模块: 数据处理服务
+描述: 负责将笔记文件整理成txt格式，进行内容收集、格式化和临时文件管理
+功能:
+    - 收集指定文件的所有笔记内容
+    - 将HTML格式转换为纯文本
+    - 生成临时文件用于AI处理
+    - 管理笔记内容的格式化输出
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.1.0
+
+依赖:
+    - html2text: HTML转文本转换
+    - app.models: 数据模型
+    - re: 正则表达式处理
+
+许可证: Apache-2.0
 """
+
 import html2text
 import re
 import os

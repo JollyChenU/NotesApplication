@@ -1,6 +1,26 @@
 /**
- * @description 笔记编辑器组件，包含拖拽手柄和 TipTap 编辑器
- * @license Apache-2.0
+ * 文件名: NoteEditor.jsx
+ * 组件: 笔记编辑器组件
+ * 描述: 包含拖拽手柄和TipTap编辑器的复合组件，支持笔记内容的编辑和格式化
+ * 
+ * Props:
+ *   - note: 笔记对象，包含id、content、format等属性
+ *   - isActive: 是否为当前活跃的笔记
+ *   - onUpdate: 内容更新回调函数
+ *   - onFocus: 获得焦点回调函数
+ *   - onBlur: 失去焦点回调函数
+ * 
+ * 功能:
+ *   - 富文本编辑器集成
+ *   - 拖拽排序支持
+ *   - 实时内容保存
+ *   - 焦点状态管理
+ * 
+ * 作者: Jolly
+ * 创建时间: 2025-04-01
+ * 最后修改: 2025-06-04
+ * 版本: 1.2.0
+ * 许可证: Apache-2.0
  */
 
 import React, { useState } from 'react';

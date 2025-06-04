@@ -1,6 +1,13 @@
 /**
- * @description 应用头部组件，显示文件名、编辑控件和操作按钮
- * @license Apache-2.0
+ * 文件名: AppHeader.jsx
+ * 组件: 应用头部组件
+ * 描述: 应用头部组件，显示文件名、编辑控件和操作按钮，提供文件管理功能
+ * 功能: 文件名显示与编辑、新建文件、删除文件、AI优化、状态指示
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.2.0
+ * 依赖: React, Material-UI, Material Icons
+ * 许可证: Apache-2.0
  */
 import React from 'react';
 import { Box, Typography, IconButton, TextField } from '@mui/material';

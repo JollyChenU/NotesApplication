@@ -1,6 +1,13 @@
 /**
- * @description 文件夹列表组件，显示所有文件夹及其包含的文件
- * @license Apache-2.0
+ * 文件名: FolderList.jsx
+ * 组件: 文件夹列表组件
+ * 描述: 文件夹列表组件，显示所有文件夹及其包含的文件，支持拖拽和文件夹管理
+ * 功能: 文件夹展开折叠、文件夹创建编辑、拖拽排序、文件管理、右键菜单
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.3.0
+ * 依赖: React, Material-UI, @dnd-kit/sortable, FileItem
+ * 许可证: Apache-2.0
  */
 import React, { useState, useCallback, memo } from 'react';
 import { 

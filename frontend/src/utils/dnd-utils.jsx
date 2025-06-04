@@ -1,17 +1,13 @@
-/*
- * Copyright 2025 Jolly Chen
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ * 文件名: dnd-utils.jsx
+ * 组件: 拖拽工具组件
+ * 描述: 提供拖拽功能的实用工具，包括文件夹和笔记的拖拽排序、文件到文件夹的拖拽操作
+ * 功能: 拖拽上下文、拖拽排序、文件移动、可拖拽包装器
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.2.0
+ * 依赖: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, React
+ * 许可证: Apache-2.0
  */
 import React from 'react';
 import {

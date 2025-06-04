@@ -1,9 +1,26 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
-@author Jolly
-@date 2025-04-01
-@description API健康检查路由
-@version 1.0.0
-@license Apache-2.0
+文件名: health.py
+模块: API路由 - 健康检查
+描述: API健康检查端点，用于监控应用程序和数据库状态
+功能:
+    - GET /api/health - 返回应用健康状态
+    - 数据库连接状态检查
+    - 系统状态监控
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.0.0
+
+依赖:
+    - flask: Web框架
+    - app.extensions: 应用扩展
+
+许可证: Apache-2.0
 """
 
 from flask import Blueprint, jsonify
