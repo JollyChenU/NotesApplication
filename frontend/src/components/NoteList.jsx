@@ -1,17 +1,24 @@
-/*
- * Copyright 2025 Jolly Chen
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ * 文件名: NoteList.jsx
+ * 组件: NoteList - 笔记列表组件
+ * 描述: 显示和管理笔记列表的React组件
+ * 功能:
+ *   - 渲染笔记列表
+ *   - 笔记的选择和高亮
+ *   - 笔记的拖拽排序
+ *   - 笔记操作菜单
+ * 
+ * 作者: Jolly
+ * 创建时间: 2025-06-04
+ * 最后修改: 2025-06-04
+ * 修改人: Jolly
+ * 版本: 1.0.0
+ * 
+ * 依赖:
+ *   - react: React核心库
+ *   - @mui/material: Material-UI组件库
+ * 
+ * 许可证: Apache-2.0
  */
 import React, { memo, useEffect, useState } from 'react';
 import { Box, Paper, IconButton, Menu, MenuItem } from '@mui/material';

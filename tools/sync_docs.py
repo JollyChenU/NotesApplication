@@ -16,30 +16,36 @@
 # limitations under the License.
 
 """
-文档同步工具 (Document Synchronization Tool)
-
-这个脚本用于自动同步中英文文档。它监控指定目录下的README和CHANGELOG文件的变更，
-并自动同步更新对应的中文、英文和双语版本。
-
-主要功能：
-- 监控README.md、README_CN.md、README_EN.md等文件的变更
-- 自动提取和同步中英文内容
-- 支持双语文档的分离与合并
-- 支持CHANGELOG的同步更新
-
-使用方法：
-1. 确保已安装所需依赖：watchdog
-2. 运行脚本：python sync_docs.py
-3. 脚本会自动监控当前目录下的文档变更并进行同步
-
-注意事项：
-- 双语文档中，中英文内容应该逐行对应
-- 程序通过检测中文字符来区分中英文内容
-- 支持的文件类型：README.md、CHANGELOG.md及其对应的中英文版本
+文件名: sync_docs.py
+模块: 工具 - 文档同步
+描述: 文档同步工具，用于自动同步中英文文档
+功能:
+    - 监控README和CHANGELOG文件的变更
+    - 自动同步中英文内容
+    - 支持双语文档的分离与合并
+    - 支持CHANGELOG的同步更新
 
 作者: Jolly
+创建时间: 2025-06-04
+最后修改: 2025-06-04
+修改人: Jolly
 版本: 1.0.1
-日期: 2025-03-01
+
+依赖:
+    - watchdog: 文件监控
+    - re: 正则表达式
+    - os, shutil: 文件操作
+
+使用方法:
+    1. 确保已安装所需依赖：watchdog
+    2. 运行脚本：python sync_docs.py
+    3. 脚本会自动监控当前目录下的文档变更并进行同步
+
+注意事项:
+    - 双语文档中，中英文内容应该逐行对应
+    - 程序通过检测中文字符来区分中英文内容
+    - 支持的文件类型：README.md、CHANGELOG.md及其对应的中英文版本
+
 许可证: Apache-2.0
 """
 

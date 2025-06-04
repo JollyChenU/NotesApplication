@@ -1,9 +1,13 @@
 /**
- * @author Jolly
- * @date 2025-05-01 (Refactored)
- * @description TipTap编辑器组件，提供富文本编辑功能
- * @version 1.3.0
- * @license Apache-2.0
+ * 文件名: TipTapEditor.jsx
+ * 组件: TipTap富文本编辑器
+ * 描述: TipTap编辑器组件，提供富文本编辑功能，支持Markdown语法和键盘导航
+ * 功能: 富文本编辑、Markdown支持、键盘快捷键、自动保存、笔记导航
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.3.0
+ * 依赖: React, @tiptap/react, @tiptap/core, Material-UI
+ * 许可证: Apache-2.0
  */
 
 import React, { useEffect, useCallback, useMemo } from 'react'; // Add useMemo

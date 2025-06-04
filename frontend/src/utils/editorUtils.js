@@ -1,6 +1,13 @@
 /**
- * @description TipTap 编辑器相关的辅助函数
- * @license Apache-2.0
+ * 文件名: editorUtils.js
+ * 组件: 编辑器工具函数
+ * 描述: TipTap编辑器相关的辅助函数，提供内容解析、分割、导航等功能
+ * 功能: 内容分割、笔记导航、内容解析、编辑器操作、键盘处理
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.2.0
+ * 依赖: TipTap Editor
+ * 许可证: Apache-2.0
  */
 
 /**

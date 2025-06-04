@@ -1,6 +1,13 @@
 /**
- * @description 自定义 Hook，用于管理文件状态和操作
- * @license Apache-2.0
+ * 文件名: useFiles.js
+ * 组件: 文件管理Hook
+ * 描述: 自定义Hook，用于管理文件状态、文件操作和文件名编辑功能
+ * 功能: 文件CRUD操作、活跃文件管理、文件名编辑、拖拽排序
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.2.0
+ * 依赖: React hooks, noteService
+ * 许可证: Apache-2.0
  */
 import { useState, useCallback } from 'react';
 import noteService from '../services/noteService';

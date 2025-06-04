@@ -1,6 +1,29 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
-AI优化服务 - 负责将txt内容喂给AI进行优化
+文件名: ai_optimizer.py
+模块: AI优化服务
+描述: 负责将txt内容喂给AI进行优化，包含各种优化类型和智能处理功能
+功能:
+    - 调用AI服务对笔记内容进行优化
+    - 支持多种优化类型（语法、结构、清晰度等）
+    - 生成优化报告和临时文件管理
+    - 内容预处理和后处理
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.1.0
+
+依赖:
+    - app.services.ai_service: AI服务模块
+    - os, datetime, re: 系统和文本处理
+
+许可证: Apache-2.0
 """
+
 import os
 import datetime
 import re

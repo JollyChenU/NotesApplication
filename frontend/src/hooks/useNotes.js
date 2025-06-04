@@ -1,6 +1,13 @@
 /**
- * @description 自定义 Hook，用于管理当前活动文件的笔记状态和操作
- * @license Apache-2.0
+ * 文件名: useNotes.js
+ * 组件: 笔记管理Hook
+ * 描述: 自定义Hook，用于管理当前活跃文件的笔记状态、笔记操作和内容编辑
+ * 功能: 笔记CRUD操作、活跃笔记管理、内容编辑、自动保存
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.2.0
+ * 依赖: React hooks, noteService
+ * 许可证: Apache-2.0
  */
 import { useState, useEffect, useCallback } from 'react';
 import noteService from '../services/noteService';

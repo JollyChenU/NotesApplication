@@ -1,17 +1,23 @@
-/*
- * Copyright 2025 Jolly Chen
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ * 文件名: ErrorBoundary.jsx
+ * 组件: ErrorBoundary - 错误边界组件
+ * 描述: React错误边界组件，用于捕获和处理子组件中的JavaScript错误
+ * 功能:
+ *   - 捕获子组件的渲染错误
+ *   - 显示友好的错误提示页面
+ *   - 防止整个应用崩溃
+ *   - 错误日志记录
+ * 
+ * 作者: Jolly
+ * 创建时间: 2025-06-04
+ * 最后修改: 2025-06-04
+ * 修改人: Jolly
+ * 版本: 1.0.0
+ * 
+ * 依赖:
+ *   - react: React核心库
+ * 
+ * 许可证: Apache-2.0
  */
 import React from 'react';
 import { Box, Typography, Alert, AlertTitle } from '@mui/material';

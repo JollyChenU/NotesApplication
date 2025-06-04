@@ -1,9 +1,27 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
-@author Jolly
-@date 2025-04-01
-@description 应用配置文件
-@version 1.0.0
-@license Apache-2.0
+文件名: config.py
+模块: 应用配置
+描述: Flask应用程序配置模块，包含开发、测试、生产环境配置
+功能:
+    - 基础配置类定义
+    - 环境特定配置
+    - 数据库连接配置
+    - 安全密钥和会话配置
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.0.0
+
+依赖:
+    - os: 操作系统接口
+    - datetime: 时间处理
+
+许可证: Apache-2.0
 """
 
 import os

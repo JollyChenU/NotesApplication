@@ -1,9 +1,40 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
-@author Jolly
-@date 2025-04-01
-@description 笔记内容相关路由
-@version 1.1.0
-@license Apache-2.0
+文件名: notes.py
+模块: 笔记API路由
+描述: 处理笔记相关的HTTP请求，包括CRUD操作和文件管理
+功能:
+    - 笔记的创建、读取、更新、删除操作
+    - 笔记文件的上传和管理
+    - 笔记内容的获取和保存
+    - RESTful API接口实现
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.1.0
+
+依赖:
+    - Flask: Web框架
+    - SQLAlchemy: ORM数据库操作
+    - app.models: 数据模型
+
+API端点:
+    - GET /api/notes: 获取笔记列表
+    - POST /api/notes: 创建新笔记
+    - GET /api/notes/<id>: 获取特定笔记
+    - PUT /api/notes/<id>: 更新笔记
+    - DELETE /api/notes/<id>: 删除笔记
+
+注意事项:
+    - 所有API都返回统一的JSON格式
+    - 需要进行输入参数验证
+    - 错误处理需要返回适当的HTTP状态码
+
+许可证: Apache-2.0
 """
 
 from flask import Blueprint, request, jsonify

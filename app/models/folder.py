@@ -1,9 +1,26 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
-@author Jolly
-@date 2025-04-01
-@description 文件夹数据模型
-@version 1.0.0
-@license Apache-2.0
+文件名: folder.py
+模块: 数据模型 - 文件夹
+描述: 文件夹数据模型，定义文件夹的结构和数据库操作
+功能:
+    - 文件夹数据模型定义
+    - 数据库表映射
+    - 文件夹CRUD操作方法
+    - 数据验证和业务逻辑
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.0.0
+
+依赖:
+    - app.extensions: 数据库扩展
+
+许可证: Apache-2.0
 """
 
 from app.extensions import db  # 更新导入路径

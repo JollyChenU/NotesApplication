@@ -1,6 +1,13 @@
 /**
- * @description 单个文件项组件，用于在侧边栏中显示文件
- * @license Apache-2.0
+ * 文件名: FileItem.jsx
+ * 组件: 文件列表项组件
+ * 描述: 单个文件项组件，用于在侧边栏中显示文件，支持拖拽排序和选择操作
+ * 功能: 文件显示、拖拽支持、文件选择、状态指示、可访问性
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.2.0
+ * 依赖: React, Material-UI, @dnd-kit/sortable
+ * 许可证: Apache-2.0
  */
 import React, { memo } from 'react';
 import { ListItem, ListItemText, ListItemIcon } from '@mui/material';

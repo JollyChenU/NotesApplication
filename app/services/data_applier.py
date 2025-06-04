@@ -1,5 +1,29 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
-数据应用服务 - 负责将优化后的txt转换为笔记文件
+文件名: data_applier.py
+模块: 服务层 - 数据应用
+描述: 数据应用服务，负责将优化后的文本内容转换为笔记文件
+功能:
+    - 文本内容解析和处理
+    - 笔记数据结构转换
+    - 批量笔记创建和更新
+    - 数据验证和清理
+
+作者: Jolly
+创建时间: 2025-06-04
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.0.0
+
+依赖:
+    - re: 正则表达式处理
+    - datetime: 时间处理
+    - app.models: 数据模型
+    - app.extensions: 数据库扩展
+
+许可证: Apache-2.0
 """
 import re
 import datetime

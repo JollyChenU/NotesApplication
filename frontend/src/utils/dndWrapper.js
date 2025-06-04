@@ -1,3 +1,26 @@
+/**
+ * 文件名: dndWrapper.js
+ * 组件: DnD包装器
+ * 描述: React DnD库的包装器，提供拖拽功能的高层封装
+ * 功能:
+ *   - DragDropContext包装
+ *   - Droppable区域封装
+ *   - Draggable元素封装
+ *   - 拖拽事件处理
+ * 
+ * 作者: Jolly
+ * 创建时间: 2025-06-04
+ * 最后修改: 2025-06-04
+ * 修改人: Jolly
+ * 版本: 1.0.0
+ * 
+ * 依赖:
+ *   - react: React核心库
+ *   - react-beautiful-dnd: 拖拽功能库
+ * 
+ * 许可证: Apache-2.0
+ */
+
 /*
  * Copyright 2025 Jolly Chen
  *

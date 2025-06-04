@@ -1,6 +1,13 @@
 /**
- * @description 自定义 Hook，用于管理 API 健康状态和错误消息
- * @license Apache-2.0
+ * 文件名: useApiStatus.js
+ * 组件: API状态管理Hook
+ * 描述: 自定义Hook，用于管理API健康状态检查、错误消息处理和连接状态监控
+ * 功能: API健康检查、错误状态管理、连接监控、状态更新
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.1.0
+ * 依赖: React hooks, noteService
+ * 许可证: Apache-2.0
  */
 import { useState, useEffect, useCallback } from 'react';
 import noteService from '../services/noteService';

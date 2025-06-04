@@ -1,6 +1,13 @@
 /**
- * @description TipTap编辑器扩展配置
- * @license Apache-2.0
+ * 文件名: tiptapExtensions.js
+ * 组件: TipTap扩展配置
+ * 描述: TipTap编辑器的扩展配置，包括基础功能、语法高亮、快捷键等
+ * 功能: 编辑器扩展、语法高亮、快捷键绑定、自定义命令、占位符
+ * 作者: Jolly Chen
+ * 时间: 2024-11-20
+ * 版本: 1.2.0
+ * 依赖: @tiptap/starter-kit, @tiptap/extension-*, lowlight
+ * 许可证: Apache-2.0
  */
 
 import StarterKit from '@tiptap/starter-kit';

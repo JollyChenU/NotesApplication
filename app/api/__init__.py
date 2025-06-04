@@ -2,11 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-@author Jolly
-@date 2025-04-01
-@description 路由模块初始化文件
-@version 1.0.0
-@license Apache-2.0
+文件名: __init__.py
+模块: API路由模块
+描述: API蓝图注册和路由初始化模块
+功能:
+    - 注册API蓝图
+    - 定义路由命名空间
+    - API模块导入管理
+
+作者: Jolly
+创建时间: 2025-04-01
+最后修改: 2025-06-04
+修改人: Jolly
+版本: 1.0.0
+
+许可证: Apache-2.0
 """
 
 from flask import Blueprint, jsonify
