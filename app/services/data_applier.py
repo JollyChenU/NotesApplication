@@ -162,31 +162,28 @@ class DataApplier:
     
     def _parse_optimized_content(self, content):
         """
-        解析优化后的内容为笔记块
-        
-        这个方法需要根据内容的特征智能分割成合理的笔记块
+        解析优化后的内容为笔记块.
+        主要基于一个或多个空行来分割文本内容为不同的笔记块.
         """
         if not content:
             return []
         
-        # 移除文件头部的元数据（如果存在）
         content = self._remove_metadata_header(content)
         
-        # 基于标题分割内容
-        notes = self._split_by_headers(content)
+        # 基于一个或多个连续的空行分割内容
+        # 使用 re.split(r'(\n\s*){2,}', content) 来匹配两个或更多连续的换行符（中间可以有空格）
+        blocks = re.split(r'(\n\s*){2,}', content)
         
-        # 如果没有标题分割，则基于段落分割
-        if len(notes) <= 1:
-            notes = self._split_by_paragraphs(content)
+        notes = []
+        for block in blocks:
+            if block is None:  # re.split可能会在结果中产生None值
+                continue
+            cleaned_block = block.strip()
+            # 只要块清理后不是空字符串，就将其视为一个有效的笔记块
+            if cleaned_block: 
+                notes.append(cleaned_block)
         
-        # 清理并过滤空内容
-        cleaned_notes = []
-        for note in notes:
-            cleaned_note = note.strip()
-            if cleaned_note and len(cleaned_note) > 10:  # 至少10个字符
-                cleaned_notes.append(cleaned_note)
-        
-        return cleaned_notes
+        return notes
     
     def _remove_metadata_header(self, content):
         """
@@ -202,63 +199,6 @@ class DataApplier:
                 break
         
         return '\n'.join(lines[content_start:]).strip()
-    
-    def _split_by_headers(self, content):
-        """
-        基于markdown标题分割内容
-        """
-        # 使用正则表达式找到所有标题
-        header_pattern = r'^(#{1,6})\s+(.+)$'
-        lines = content.split('\n')
-        
-        notes = []
-        current_note = []
-        
-        for line in lines:
-            if re.match(header_pattern, line):
-                # 遇到新标题，保存之前的内容
-                if current_note:
-                    notes.append('\n'.join(current_note))
-                    current_note = []
-            current_note.append(line)
-        
-        # 添加最后一个笔记块
-        if current_note:
-            notes.append('\n'.join(current_note))
-        
-        return notes
-    
-    def _split_by_paragraphs(self, content):
-        """
-        基于段落分割内容
-        """
-        # 基于双换行符分割段落
-        paragraphs = re.split(r'\n\s*\n', content)
-        
-        notes = []
-        current_note = []
-        current_length = 0
-        max_note_length = 1000  # 每个笔记块最大长度
-        
-        for paragraph in paragraphs:
-            paragraph = paragraph.strip()
-            if not paragraph:
-                continue
-            
-            # 如果当前笔记块太长，创建新的笔记块
-            if current_length + len(paragraph) > max_note_length and current_note:
-                notes.append('\n\n'.join(current_note))
-                current_note = []
-                current_length = 0
-            
-            current_note.append(paragraph)
-            current_length += len(paragraph)
-        
-        # 添加最后一个笔记块
-        if current_note:
-            notes.append('\n\n'.join(current_note))
-        
-        return notes
     
     def _create_backup(self, file_id, notes):
         """

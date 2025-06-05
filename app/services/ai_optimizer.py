@@ -77,7 +77,7 @@ class AIOptimizer:
                 'file_id': file_id,
                 'file_name': file_name,
                 'original_content': ai_result['original_content'],
-                'optimized_content': ai_result['optimized_content'],
+                'optimized_content': self._remove_markdown_wrapper(ai_result['optimized_content']), # 调用方法移除markdown包装器
                 'optimization_type': optimization_type,
                 'report': ai_result['report'],
                 'optimized_temp_file': optimized_temp_file
@@ -305,3 +305,40 @@ class AIOptimizer:
                 'optimization_types': [], 
                 'temp_files': []
             }
+    
+    def _remove_markdown_wrapper(self, content):
+        """
+        移除AI优化内容中的markdown代码块包装器
+        移除 ```markdown 和 ``` 包装器，只保留实际内容
+        """
+        if not content:
+            return content
+        
+        # 按行分割内容
+        lines = content.strip().split('\n')
+        
+        if not lines:
+            return content
+        
+        # 移除开头的 ```markdown 或 ```
+        start_index = 0
+        if lines[0].strip().startswith('```markdown'):
+            start_index = 1
+        elif lines[0].strip() == '```':
+            start_index = 1
+        
+        # 移除结尾的 ```
+        end_index = len(lines)
+        if lines and lines[-1].strip() == '```':
+            end_index = len(lines) - 1
+        
+        # 提取实际内容
+        actual_content_lines = lines[start_index:end_index]
+        
+        # 移除首尾空行
+        while actual_content_lines and not actual_content_lines[0].strip():
+            actual_content_lines = actual_content_lines[1:]
+        while actual_content_lines and not actual_content_lines[-1].strip():
+            actual_content_lines = actual_content_lines[:-1]
+        
+        return '\n'.join(actual_content_lines)
