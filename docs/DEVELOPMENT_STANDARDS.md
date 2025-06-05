@@ -429,6 +429,55 @@ git commit -m "chore(deps): 更新项目依赖版本"
 git commit -m "chore(docker): 优化Docker构建配置"
 ```
 
+#### 完整的Git提交工作流示例
+
+以下是一个完整的功能开发和提交流程示例，以"优化AI返回内容格式"功能为例：
+
+```bash
+# 1. 从主分支创建新的功能分支
+git checkout main
+git pull origin main
+git checkout -b feature/optimize-ai-response-format
+
+# 2. 开发并提交代码
+git add app/services/ai_optimizer.py
+git commit -m "feat(AI): 移除优化内容中的Markdown代码块包装器
+
+更新AI优化器，移除AI服务返回内容中的Markdown代码块包装符号（例如 \`\`\`markdown 和 \`\`\`）。
+此更改确保应用下游仅处理纯文本的优化内容，提升了与其他模块的集成效果。
+
+- 新增 _remove_markdown_wrapper 方法
+- 在 optimize_content 方法中调用包装器移除逻辑
+- 保持原有文本分割和处理功能不变"
+
+# 3. 推送分支到远程仓库
+git push -u origin feature/optimize-ai-response-format
+
+# 4. 创建Pull Request（在GitHub网页端操作）
+# 标题: [feat] 移除AI优化内容中的Markdown代码块包装器
+# 描述: 根据PR模板填写详细信息
+
+# 5. 代码审查通过后，合并到主分支（在GitHub网页端操作）
+# 选择 "Squash and merge" 或 "Create a merge commit"
+
+# 6. 清理本地分支
+git checkout main
+git pull origin main
+git branch -d feature/optimize-ai-response-format
+```
+
+#### 多次提交的功能分支示例
+```bash
+# 开发过程中的多次提交
+git commit -m "feat(AI): 添加markdown包装器移除基础方法"
+git commit -m "fix(AI): 修复空内容处理逻辑"
+git commit -m "test(AI): 添加包装器移除功能的单元测试"
+git commit -m "docs(AI): 更新AI优化器方法文档"
+
+# 推送所有提交
+git push origin feature/optimize-ai-response-format
+```
+
 ### 3. Pull Request 规范
 
 #### PR 标题格式
