@@ -194,100 +194,109 @@ def create_file():
 
 @files_bp.route('/files/<int:file_id>', methods=['PUT'])
 def update_file(file_id):
-    """更新笔记文件信息"""
-    start_time = time.time()
-    logger.info(f"✏️ 更新文件 ID = {file_id}, 请求数据: {request.get_json()}")
-    
-    file = NoteFile.query.get_or_404(file_id)
-    logger.info(f"📄 原始文件信息: ID = {file_id}, 名称 = {file.name}, 文件夹ID = {file.folder_id}")
-    data = request.get_json()
-    
-    # 保存旧文件夹ID，用于记录变化
-    old_folder_id = file.folder_id
-    
-    if isinstance(data, dict):
-        # 记录请求中包含的所有字段
-        logger.info(f"📊 更新请求字段: {list(data.keys())}")
-        
-        if 'name' in data:
-            logger.info(f"📝 更新文件名: '{file.name}' -> '{data['name']}'")
-            file.name = data['name']
-        
-        # 同时支持folder_id和folderId两种命名方式
-        folder_id_value = None
-        folder_id_set = False
-        
-        if 'folder_id' in data:
-            folder_id_value = data['folder_id']
-            folder_id_set = True
-            logger.info(f"📂 检测到folder_id字段: {folder_id_value}")
-        elif 'folderId' in data:
-            folder_id_value = data['folderId']
-            folder_id_set = True
-            logger.info(f"📂 检测到folderId字段: {folder_id_value}")
-            
-        if folder_id_set:
-            # 明确处理移动到根目录的情况
-            if folder_id_value == 'null' or folder_id_value is None or folder_id_value == 0 or folder_id_value == '0' or str(folder_id_value).lower() == 'root':
-                logger.info(f"📂 将文件 {file_id} 从文件夹 {file.folder_id} 移动到根目录")
-                # 明确设置folder_id为None
-                file.folder_id = None
-                
-                # 日志记录SQL更新操作以便调试
-                logger.debug(f"SQL更新: file.folder_id = {file.folder_id}")
-                
-                # 立即执行flush以确保更新已应用到会话
-                try:
-                    db.session.flush()
-                    logger.debug(f"SQL flush后的file.folder_id = {file.folder_id}")
-                except Exception as flush_error:
-                    logger.error(f"Flush出错: {flush_error}")
-            else:
-                try:
-                    new_folder_id = int(folder_id_value)
-                    logger.info(f"📂 将文件 {file_id} 从文件夹 {file.folder_id} 移动到文件夹 {new_folder_id}")
-                    file.folder_id = new_folder_id
-                except (ValueError, TypeError):
-                    error_msg = f"❌ 无效的文件夹ID格式: {folder_id_value}"
-                    logger.error(error_msg)
-                    return jsonify({
-                        'error': 'Invalid folder ID',
-                        'message': f'Folder ID must be an integer, received: {folder_id_value}'
-                    }), 400
-    else:
-        logger.info(f"📝 使用兼容模式更新文件名: '{file.name}' -> '{data}'")
-        file.name = data  # 兼容旧版API
-    
+    """更新文件信息"""
     try:
-        # 将更改提交到数据库
-        db.session.commit()
+        data = request.get_json()
+        if not data:
+            logger.warning(f"更新文件 {file_id} 失败: 请求数据为空")
+            return jsonify({'error': '请求数据为空'}), 400
         
-        # 强制重新从数据库查询以确保获取最新状态
+        logger.info(f"开始更新文件 {file_id}, 请求数据: {data}")
+        
+        # 查找文件
         file = NoteFile.query.get(file_id)
+        if not file:
+            logger.warning(f"更新文件失败: 文件 {file_id} 不存在")
+            return jsonify({'error': '文件不存在'}), 404
         
-        processing_time = time.time() - start_time
-        logger.info(f"✅ 文件更新成功: ID = {file_id}, 新文件夹ID = {file.folder_id}, 处理时间: {processing_time:.2f}秒")
+        # 记录更新前的状态
+        old_folder_id = file.folder_id
+        old_name = file.name
+        old_content = getattr(file, 'content', '')
+        old_order = file.order
         
-        # 直接返回更新后的文件对象 
-        result = file.to_dict()
-        result['old_folder_id'] = old_folder_id
-        result['processing_time'] = processing_time
+        logger.debug(f"文件 {file_id} 更新前状态: 名称={old_name}, 文件夹={old_folder_id}, 顺序={old_order}")
         
-        # 特别记录根目录情况
-        if file.folder_id is None:
-            logger.info(f"📁 文件现在位于根目录 (folder_id = {file.folder_id})")
-            # 确保JSON响应中folder_id显式为null
-            result['folder_id'] = None
+        # 更新文件信息
+        if 'name' in data:
+            file.name = data['name']
+            logger.debug(f"文件 {file_id} 名称更新: {old_name} -> {file.name}")
+        if 'content' in data:
+            file.content = data['content']
+            logger.debug(f"文件 {file_id} 内容已更新 (长度: {len(old_content)} -> {len(file.content)})")
+        if 'order' in data:
+            file.order = data['order']
+            logger.debug(f"文件 {file_id} 顺序更新: {old_order} -> {file.order}")
         
-        return jsonify(result)
+        # 处理文件夹移动 - 支持两种字段名
+        if 'folder_id' in data or 'folderId' in data:
+            new_folder_id = data.get('folder_id') or data.get('folderId')
+            logger.debug(f"文件 {file_id} 收到文件夹移动请求: {new_folder_id} (类型: {type(new_folder_id)})")
+            
+            # 如果是字符串 'null' 或空字符串，转换为 None
+            if new_folder_id in ['null', '', '0']:
+                logger.debug(f"文件 {file_id} 文件夹ID '{new_folder_id}' 转换为 None (根目录)")
+                new_folder_id = None
+            elif new_folder_id is not None:
+                try:
+                    new_folder_id = int(new_folder_id)
+                    logger.debug(f"文件 {file_id} 文件夹ID转换为整数: {new_folder_id}")
+                except (ValueError, TypeError) as e:
+                    logger.error(f"文件 {file_id} 无效的文件夹ID '{new_folder_id}': {str(e)}")
+                    return jsonify({'error': '无效的文件夹ID'}), 400
+            
+            # 验证目标文件夹是否存在（如果不是移动到根目录）
+            if new_folder_id is not None:
+                from app.models.folder import Folder
+                target_folder = Folder.query.get(new_folder_id)
+                if not target_folder:
+                    logger.error(f"文件 {file_id} 移动失败: 目标文件夹 {new_folder_id} 不存在")
+                    return jsonify({'error': '目标文件夹不存在'}), 404
+                logger.debug(f"文件 {file_id} 目标文件夹 {new_folder_id} ({target_folder.name}) 验证通过")
+            
+            # 记录文件夹移动操作
+            if old_folder_id != new_folder_id:
+                old_location = f"文件夹 {old_folder_id}" if old_folder_id else "根目录"
+                new_location = f"文件夹 {new_folder_id}" if new_folder_id else "根目录"
+                logger.info(f"文件 {file_id} ({file.name}) 开始移动: {old_location} -> {new_location}")
+                
+                file.folder_id = new_folder_id
+                logger.info(f"文件 {file_id} 文件夹ID已更新: {old_folder_id} -> {new_folder_id}")
+            else:
+                logger.debug(f"文件 {file_id} 文件夹未变化，保持在: {old_folder_id}")
+        
+        # 提交更改
+        db.session.commit()
+        logger.info(f"文件 {file_id} 数据库更改已提交")
+        
+        # 记录更新操作
+        changes = []
+        if old_name != file.name:
+            changes.append(f"名称: {old_name} -> {file.name}")
+        if hasattr(file, 'content') and old_content != file.content:
+            changes.append(f"内容已更新 (长度: {len(old_content)} -> {len(file.content)})")
+        if old_order != file.order:
+            changes.append(f"顺序: {old_order} -> {file.order}")
+        if old_folder_id != file.folder_id:
+            old_loc = f"文件夹 {old_folder_id}" if old_folder_id else "根目录"
+            new_loc = f"文件夹 {file.folder_id}" if file.folder_id else "根目录"
+            changes.append(f"位置: {old_loc} -> {new_loc}")
+        
+        if changes:
+            logger.info(f"文件 {file_id} 更新成功: {', '.join(changes)}")
+        else:
+            logger.debug(f"文件 {file_id} 无实际更改")
+        
+        response_data = file.to_dict()
+        
+        logger.debug(f"文件 {file_id} 更新响应: {response_data}")
+        return jsonify(response_data)
+        
     except Exception as e:
         db.session.rollback()
-        logger.error(f"❌ 更新文件失败: {str(e)}")
+        logger.error(f"更新文件 {file_id} 失败: {str(e)}")
         logger.error(traceback.format_exc())
-        return jsonify({
-            'error': 'Database error',
-            'message': 'Failed to update file'
-        }), 500
+        return jsonify({'error': '更新文件失败'}), 500
 
 @files_bp.route('/files/<int:file_id>', methods=['DELETE'])
 def delete_file(file_id):

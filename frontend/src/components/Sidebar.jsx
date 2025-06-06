@@ -150,18 +150,33 @@ const Sidebar = ({
     return files.filter(file => rootIndicators.includes(file.folder_id));
   }, [files]);
 
-  // 设置拖拽状态监听
+  // 设置拖拽状态监听 - 使用dnd-kit事件
   React.useEffect(() => {
-    const onDragStart = () => setIsFileDragging(true);
-    const onDragEnd = () => {
+    const onDragStart = (event) => {
+      SidebarLogger.debug('拖拽开始事件触发', event);
+      setIsFileDragging(true);
+      if (event.detail && event.detail.fileId) {
+        setDraggingFileId(event.detail.fileId);
+      }
+    };
+    
+    const onDragEnd = (event) => {
+      SidebarLogger.debug('拖拽结束事件触发', event);
       setIsFileDragging(false);
       setDraggingFileId(null);
     };
     
+    // 监听自定义拖拽事件
+    document.addEventListener('dnd-drag-start', onDragStart);
+    document.addEventListener('dnd-drag-end', onDragEnd);
+    
+    // 同时保留原生事件作为备用
     document.addEventListener('dragstart', onDragStart);
     document.addEventListener('dragend', onDragEnd);
     
     return () => {
+      document.removeEventListener('dnd-drag-start', onDragStart);
+      document.removeEventListener('dnd-drag-end', onDragEnd);
       document.removeEventListener('dragstart', onDragStart);
       document.removeEventListener('dragend', onDragEnd);
     };
