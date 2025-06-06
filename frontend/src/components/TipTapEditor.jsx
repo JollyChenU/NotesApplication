@@ -13,10 +13,11 @@
 import React, { useEffect, useCallback, useMemo } from 'react'; // Add useMemo
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Box } from '@mui/material';
-// Remove html-to-markdown import if no longer needed
-// import htmlToMarkdown from 'html-to-markdown';
 import { tiptapExtensions } from '../utils/tiptapExtensions';
 import { setFocusToEditor, navigateBetweenNotes, handleEnterKeySplit, debounce } from '../utils/editorUtils'; // Import debounce
+import MarkdownIt from 'markdown-it';
+// Remove html-to-markdown import if no longer needed
+// import htmlToMarkdown from 'html-to-markdown';
 
 // 创建全局存储编辑器实例的对象
 if (!window.tiptapEditors) {
@@ -81,20 +82,20 @@ const TipTapEditor = ({
   // Simplified effect to sync external note content changes to the editor
   useEffect(() => {
     if (editor && note?.content !== undefined) {
-      // Check if the editor is ready and if the content actually differs
-      // Use a simple string comparison.
-      if (editor.isEditable && editor.getHTML() !== note.content) {
-        // Use setContent to update the editor's content.
-        // The second argument `false` prevents firing the 'update' event again.
-        // Store selection before setting content
+      // 检查内容是否为 markdown 格式（以 # 或 - 或 * 或数字. 开头，或包含换行的 markdown 特征）
+      const isLikelyMarkdown = typeof note.content === 'string' && /(^#|^\* |^- |^\d+\. |\n#|\n\* |\n- |\n\d+\.)/.test(note.content);
+      let htmlContent = note.content;
+      if (isLikelyMarkdown && !/^<([a-z]+)([^<]+)*(?:>(.*)<\/\1>|\s+\/>)$/i.test(note.content.trim())) {
+        // 仅在内容不是 HTML 时转换
+        const md = new MarkdownIt();
+        htmlContent = md.render(note.content);
+      }
+      if (editor.isEditable && editor.getHTML() !== htmlContent) {
         const { from, to } = editor.state.selection;
-        editor.commands.setContent(note.content, false);
-        // Try to restore selection if possible and meaningful
-        // Check if the previous selection is still valid
+        editor.commands.setContent(htmlContent, false);
         try {
           editor.commands.setTextSelection({ from, to });
         } catch (error) {
-          // If restoring fails (e.g., content changed too much), focus at the end
           editor.commands.focus('end');
         }
       }
