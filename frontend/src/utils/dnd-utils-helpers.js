@@ -177,6 +177,7 @@ export function clearAllFolderHighlights() {
     el.style.backgroundColor = '';
     el.style.boxShadow = '';
     el.style.border = '';
+    el.style.borderTop = '';
   });
   Logger.debug('清除所有文件夹高亮');
 }
@@ -248,6 +249,22 @@ export function cleanupDragState() {
     el.style.position = 'relative';
     el.style.transform = '';
     el.style.boxShadow = '';
+    el.style.backgroundColor = '';
+    el.style.filter = '';
+    el.classList.remove('is-dragging');
+  });
+  
+  // 重置所有文件项元素样式
+  document.querySelectorAll('[data-file-item="true"]').forEach(el => {
+    el.style.opacity = '';
+    el.style.border = '';
+    el.style.zIndex = '';
+    el.style.pointerEvents = '';
+    el.style.position = '';
+    el.style.transform = '';
+    el.style.boxShadow = '';
+    el.style.backgroundColor = '';
+    el.style.filter = '';
     el.classList.remove('is-dragging');
   });
   

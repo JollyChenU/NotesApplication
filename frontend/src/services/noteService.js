@@ -300,13 +300,30 @@ const noteService = {
       throw error;
     }
   },
-
   deleteFolder: async (folderId) => {
     try {
       const response = await axios.delete(`${API_URL}/folders/${folderId}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting folder:', error);
+      throw error;
+    }
+  },
+  /**
+   * 将文件移动到指定文件夹
+   * @param {string} fileId - 要移动的文件ID
+   * @param {string|null} folderId - 目标文件夹ID，如果是null则移动到根目录
+   * @returns {Promise<Object>} - 移动后的文件数据
+   */
+  moveFileToFolder: async (fileId, folderId) => {
+    try {
+      // 使用现有的updateFile端点，传递folder_id参数
+      const response = await axios.put(`${API_URL}/files/${fileId}`, { 
+        folder_id: folderId 
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error moving file ${fileId} to folder ${folderId}:`, error);
       throw error;
     }
   },
