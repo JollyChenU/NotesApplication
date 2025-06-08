@@ -82,15 +82,26 @@ const TipTapEditor = ({
   // Simplified effect to sync external note content changes to the editor
   useEffect(() => {
     if (editor && note?.content !== undefined) {
+      // 避免在用户正在编辑时重置内容，防止光标跳跃
+      if (isEditing || editor.isFocused) {
+        return;
+      }
+      
+      const currentContent = editor.getHTML();
+      
       // 检查内容是否为 markdown 格式（以 # 或 - 或 * 或数字. 开头，或包含换行的 markdown 特征）
       const isLikelyMarkdown = typeof note.content === 'string' && /(^#|^\* |^- |^\d+\. |\n#|\n\* |\n- |\n\d+\.)/.test(note.content);
       let htmlContent = note.content;
+      
+      // 只有在内容确实来自外部（如AI优化）且不是HTML时才转换
       if (isLikelyMarkdown && !/^<([a-z]+)([^<]+)*(?:>(.*)<\/\1>|\s+\/>)$/i.test(note.content.trim())) {
         // 仅在内容不是 HTML 时转换
         const md = new MarkdownIt();
         htmlContent = md.render(note.content);
       }
-      if (editor.isEditable && editor.getHTML() !== htmlContent) {
+      
+      // 只有在内容真正不同时才更新编辑器
+      if (currentContent !== htmlContent) {
         const { from, to } = editor.state.selection;
         editor.commands.setContent(htmlContent, false);
         try {
@@ -100,7 +111,7 @@ const TipTapEditor = ({
         }
       }
     }
-  }, [editor, note?.content]); // Dependencies: editor instance and the content string
+  }, [editor, note?.content, isEditing]); // 添加 isEditing 依赖
 
   // Store editor instance globally
   useEffect(() => {

@@ -37,3 +37,6 @@ Thumbs.db
 docs/OnePage_*
 docs/PPT_*
 docs/REPORT_*
+
+# temp files
+temp/
