@@ -26,7 +26,7 @@ import NoteDragHandle from '@mui/icons-material/DragIndicator';
 import DeleteIcon from '@mui/icons-material/Delete';
 import NoteEditor from './NoteEditor';
 // 引入新的拖放工具
-import { NoteDndContext, createSortableItem } from '../utils/dnd-utils.jsx';
+import { NoteDndContext, createSortableItem } from '../utils/dnd/index.js';
 // 导入noteService
 import noteService from '../services/noteService';
 

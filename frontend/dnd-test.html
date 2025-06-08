@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DnD 模块测试</title>
+</head>
+<body>
+  <div id="test-container">
+    <h1>拖拽模块测试</h1>
+    <div id="test-results"></div>
+  </div>
+
+  <script type="module">
+    const testResults = document.getElementById('test-results');
+    
+    function logTest(message, isSuccess = true) {
+      const div = document.createElement('div');
+      div.style.color = isSuccess ? 'green' : 'red';
+      div.textContent = message;
+      testResults.appendChild(div);
+    }
+
+    try {
+      // 测试模块导入
+      logTest('开始测试拖拽模块导入...');
+      
+      // 测试日志模块
+      import('./src/utils/dnd/dnd-logger.js').then(module => {
+        const { Logger, LOG_LEVEL } = module;
+        logTest('✅ 日志模块导入成功');
+        Logger.info('日志系统测试成功');
+        logTest('✅ 日志系统功能正常');
+      }).catch(error => {
+        logTest('❌ 日志模块导入失败: ' + error.message, false);
+      });
+
+      // 测试辅助函数模块
+      import('./src/utils/dnd/dnd-helpers.js').then(module => {
+        const { throttle, clearAllFolderHighlights } = module;
+        logTest('✅ 辅助函数模块导入成功');
+        
+        // 测试节流函数
+        const testFunc = throttle(() => {
+          logTest('✅ 节流函数测试成功');
+        }, 100);
+        testFunc();
+      }).catch(error => {
+        logTest('❌ 辅助函数模块导入失败: ' + error.message, false);
+      });
+
+      // 测试主入口模块
+      import('./src/utils/dnd/index.js').then(module => {
+        logTest('✅ 主入口模块导入成功');
+        logTest('可用的导出: ' + Object.keys(module).join(', '));
+      }).catch(error => {
+        logTest('❌ 主入口模块导入失败: ' + error.message, false);
+      });
+
+      // 测试向后兼容模块
+      import('./src/utils/dnd-utils.jsx').then(module => {
+        logTest('✅ 向后兼容模块导入成功');
+        logTest('可用的导出: ' + Object.keys(module).join(', '));
+      }).catch(error => {
+        logTest('❌ 向后兼容模块导入失败: ' + error.message, false);
+      });
+
+    } catch (error) {
+      logTest('❌ 测试过程中发生错误: ' + error.message, false);
+    }
+  </script>
+</body>
+</html>

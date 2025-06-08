@@ -41,7 +41,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
-import { FileDndContext } from '../utils/dnd-utils';
+import { FileDndContext } from '../utils/dnd/index.js';
 import FileItem from './FileItem';
 import FolderList from './FolderList';
 
