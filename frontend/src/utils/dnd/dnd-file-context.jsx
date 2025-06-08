@@ -16,12 +16,15 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
+import { ListItem, ListItemText, ListItemIcon } from '@mui/material';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { Logger, CURRENT_LOG_LEVEL, LOG_LEVEL } from './dnd-logger.js';
 
 // 内联辅助函数以避免循环依赖
@@ -115,6 +118,9 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
   const [isDragging, setIsDragging] = React.useState(false);
   const [dragStartTime, setDragStartTime] = React.useState(null);
   const [lastCleanupTime, setLastCleanupTime] = React.useState(null);
+  
+  // 添加鼠标位置跟踪状态
+  const [currentMousePos, setCurrentMousePos] = React.useState({ x: 0, y: 0 });
   
   // 使用useRef来跟踪DOM元素和元素状态
   const draggedElementRef = React.useRef(null);
@@ -333,10 +339,24 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       observer.disconnect();
       window.removeEventListener('mousemove', mouseMoveHandler);
       Logger.debug('文件夹元素识别清理完成');
+    };  }, [activeFileId, hoverFolderId, highlightFolderElementWithState]);
+    // 添加全局鼠标位置跟踪效果
+  React.useEffect(() => {
+    const handleMouseMove = (e) => {
+      setCurrentMousePos({ x: e.clientX, y: e.clientY });
+      // 添加调试输出
+      if (isDragging) {
+        Logger.debug(`鼠标位置更新: (${e.clientX}, ${e.clientY})`);
+      }
     };
-  }, [activeFileId, hoverFolderId, highlightFolderElementWithState]);
-  
-  // 处理拖拽开始
+    
+    // 始终启用鼠标位置跟踪，而不仅仅在拖拽过程中
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [isDragging]); // 保持依赖数组包含 isDragging 以便记录日志
+    // 处理拖拽开始
   const handleDragStart = (event) => {
     const { active } = event;
     
@@ -344,6 +364,8 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
     setDragStartTime(Date.now());
     setIsDragging(true);
     setActiveFileId(String(active.id));
+    // 重置悬停文件夹状态
+    setHoverFolderId(null);
     
     // 获取被拖拽文件的详细信息
     const draggedFile = files.find(file => String(file.id) === String(active.id));
@@ -376,21 +398,44 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
     } else {
       Logger.warn(`未找到拖拽元素对应的DOM: ${active.id}`);
     }
-  };
-  
-  // 处理拖拽过程中
+  };  // 处理拖拽过程中
   const handleDragOver = (event) => {
     const { active, over } = event;
     
-    // 如果没有悬停目标，则不处理
-    if (!over) {
-      // 但我们仍然需要检查鼠标位置来更新文件夹高亮
-      Logger.debug(`拖拽过程中无悬停目标，但继续检查鼠标位置`);
+    // 优先处理 @dnd-kit 的 droppable 区域事件
+    if (over && over.data && over.data.current) {
+      const { type, folderId } = over.data.current;
+      
+      Logger.debug(`检测到 droppable 区域: type=${type}, folderId=${folderId}, over.id=${over.id}`);
+      
+      if (type === 'FOLDER' && folderId !== undefined) {
+        // 处理文件夹 drop 区域
+        if (folderId !== hoverFolderId) {
+          Logger.debug(`悬停在文件夹 drop 区域: ${folderId} (之前: ${hoverFolderId || '无'})`);
+          highlightFolderElementWithState(folderId);
+        }
+        return; // 使用 droppable 区域，不再进行手动检测
+      } else if (type === 'ROOT') {
+        // 处理根目录 drop 区域
+        if (hoverFolderId !== null) {
+          Logger.debug(`悬停在根目录 drop 区域，清除文件夹高亮 (之前: ${hoverFolderId})`);
+          clearAllFolderHighlights();
+          setHoverFolderId(null);
+        }
+        return; // 使用 droppable 区域，不再进行手动检测
+      }
     }
     
-    // 检查坐标值是否有效（防止NaN或Infinity值导致崩溃）
-    const clientX = event.clientX ?? 0;
-    const clientY = event.clientY ?? 0;
+    // 如果没有有效的 droppable 区域，回退到手动检测（向后兼容）
+    if (!over) {
+      Logger.debug(`拖拽过程中无 droppable 目标，使用手动检测`);
+    }
+    
+    // 使用跟踪到的鼠标位置，而不是从事件对象获取
+    const clientX = currentMousePos.x;
+    const clientY = currentMousePos.y;
+    
+    Logger.debug(`拖拽过程中手动检测: 鼠标位置(${clientX}, ${clientY}), 当前hoverFolderId=${hoverFolderId}`);
     
     // 验证坐标值是有限数值
     if (!isFinite(clientX) || !isFinite(clientY)) {
@@ -413,19 +458,25 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
           fileId: el.getAttribute('data-file-id')
         }
       }));
-      Logger.debug(`拖拽中鼠标位置 (${clientX}, ${clientY}), 顶层元素:`, topElements);
+      Logger.debug(`手动检测鼠标位置 (${clientX}, ${clientY}), 顶层元素:`, topElements);
     }
-    
-    // 查找文件夹元素
-    const folderElement = elementsAtPoint.find(el => 
-      el.getAttribute('data-is-folder') === 'true' || 
-      el.getAttribute('data-folder-id')
-    );
+      // 查找文件夹元素 - 排除正在拖拽的文件元素
+    const folderElement = elementsAtPoint.find(el => {
+      // 排除正在拖拽的文件本身
+      if (el.getAttribute('data-file-id') === String(active.id)) {
+        return false;
+      }
+      
+      return (el.getAttribute('data-is-folder') === 'true' || 
+              el.getAttribute('data-folder-id')) &&
+             // 确保不是文件项元素
+             !el.getAttribute('data-file-item');
+    });
     
     if (folderElement) {
       const folderId = folderElement.getAttribute('data-folder-id');
       if (folderId && folderId !== hoverFolderId) { // 仅在文件夹ID变化时更新高亮
-        Logger.debug(`检测到悬停在文件夹上: ${folderId} (之前: ${hoverFolderId || '无'})`);
+        Logger.debug(`手动检测到悬停在文件夹上: ${folderId} (之前: ${hoverFolderId || '无'})`);
         highlightFolderElementWithState(folderId);
       }
     } else {
@@ -433,6 +484,7 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       const inRootArea = elementsAtPoint.some(el => 
         el.id === 'root-files' || 
         el.getAttribute('data-is-root-area') === 'true' ||
+        el.getAttribute('data-droppable-id') === 'root-area' ||
         (el.className && typeof el.className === 'string' && (
           el.className.includes('sidebar') || 
           el.className.includes('root-files-area')
@@ -440,11 +492,11 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       );
       
       if (inRootArea && hoverFolderId) {
-        Logger.debug(`检测到悬停在根目录区域，清除文件夹高亮 (之前: ${hoverFolderId})`);
+        Logger.debug(`手动检测到悬停在根目录区域，清除文件夹高亮 (之前: ${hoverFolderId})`);
         clearAllFolderHighlights();
         setHoverFolderId(null);
       } else if (hoverFolderId) {
-        Logger.debug(`检测到离开文件夹区域，清除文件夹高亮 (之前: ${hoverFolderId})`);
+        Logger.debug(`手动检测到离开文件夹区域，清除文件夹高亮 (之前: ${hoverFolderId})`);
         clearAllFolderHighlights();
         setHoverFolderId(null);
       }
@@ -484,15 +536,15 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
     }
     
     // 记录初始状态，帮助调试
-    Logger.debug(`拖动文件初始状态: ID=${draggedFile.id}, 当前所属文件夹=${draggedFile.folder_id || '根目录'}`);
-    
-    // 获取最准确的鼠标位置
-    const finalMouseX = event.activatorEvent?.clientX ?? 
+    Logger.debug(`拖动文件初始状态: ID=${draggedFile.id}, 当前所属文件夹=${draggedFile.folder_id || '根目录'}`);    // 获取最准确的鼠标位置 - 优先使用跟踪到的位置
+    const finalMouseX = currentMousePos.x || 
+                     (event.activatorEvent?.clientX ?? 
                      event.active.currentCoordinates?.x ?? 
-                     window.innerWidth / 2;
-    const finalMouseY = event.activatorEvent?.clientY ?? 
+                     window.innerWidth / 2);
+    const finalMouseY = currentMousePos.y || 
+                     (event.activatorEvent?.clientY ?? 
                      event.active.currentCoordinates?.y ?? 
-                     window.innerHeight / 2;
+                     window.innerHeight / 2);
     
     Logger.debug(`拖拽结束位置: x=${finalMouseX}, y=${finalMouseY}`);
     
@@ -521,10 +573,11 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
     
     Logger.endPerf('dragOperation');
   };
-
   // 处理拖拽结束的详细逻辑
   const processDragEnd = (event, draggedFile, finalMouseX, finalMouseY) => {
     const { active } = event;
+    
+    Logger.debug(`processDragEnd 开始: 当前hoverFolderId=${hoverFolderId}, 文件原始位置=${draggedFile.folder_id || '根目录'}`);
     
     // 获取当前鼠标位置下的所有元素
     const elementsAtPoint = document.elementsFromPoint(finalMouseX, finalMouseY);
@@ -629,10 +682,10 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       Logger.info(`未找到有效目标，取消移动操作`);
     }
   };
-
   // 处理悬停文件夹的拖拽结束
   const handleHoverFolderDrop = (active, originalFolderId, inSidebar, folderContentElement, folderHeaderElement) => {
     Logger.debug(`使用悬停文件夹ID: ${hoverFolderId}, 原文件夹: ${originalFolderId}`);
+    Logger.debug(`拖拽环境: 侧边栏=${inSidebar}, 内容元素=${!!folderContentElement}, 头部元素=${!!folderHeaderElement}`);
     
     if (String(hoverFolderId) === originalFolderId) {
       if (inSidebar && !folderContentElement && !folderHeaderElement) {
@@ -784,8 +837,7 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       folderElementsRef.current = [];
     };
   }, []);
-  
-  return (
+    return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
@@ -799,6 +851,36 @@ export function FileDndContext({ files, onReorder, onMoveToFolder, children }) {
       >
         {children}
       </SortableContext>
+      
+      {/* 拖拽预览覆盖层 */}
+      <DragOverlay>
+        {activeFileId ? (
+          <ListItem
+            sx={{
+              backgroundColor: 'background.paper',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.12)',
+              borderRadius: 1,
+              border: '1px solid rgba(63, 81, 181, 0.2)',
+              opacity: 0.9,
+              transform: 'rotate(2deg)',
+              cursor: 'grabbing',
+              minWidth: '200px',
+              maxWidth: '250px',
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <DescriptionIcon color="primary" fontSize="small" />
+            </ListItemIcon>
+            <ListItemText 
+              primary={files.find(f => f.id === activeFileId)?.name || '文件'}
+              primaryTypographyProps={{
+                noWrap: true,
+                sx: { fontWeight: 500 }
+              }}
+            />
+          </ListItem>
+        ) : null}
+      </DragOverlay>
       
       {/* 添加全局样式，只在拖拽时生效 */}
       {activeFileId && (

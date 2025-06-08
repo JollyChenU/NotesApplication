@@ -20,6 +20,7 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import { useDroppable } from '@dnd-kit/core';
 import FileItem from './FileItem';
 
 // 文件夹内容组件
@@ -93,6 +94,43 @@ const FolderContent = memo(({
     </>
   );
 });
+
+// 文件夹投放区域组件
+const FolderDropZone = ({ folder, children, isFileDragging }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `folder-${folder.id}`,
+    data: {
+      type: 'FOLDER',
+      folderId: folder.id
+    }
+  });
+
+  return (
+    <List 
+      ref={setNodeRef}
+      component="div" 
+      sx={{ 
+        bgcolor: isOver ? 'rgba(63, 81, 181, 0.08)' : 'rgba(0, 0, 0, 0.01)',
+        minHeight: '10px',
+        py: 0.5,
+        border: isOver ? '2px dashed rgba(63, 81, 181, 0.5)' : 'none',
+        borderRadius: isOver ? 1 : 0,
+        transition: 'all 0.2s ease-in-out',
+        ...(isFileDragging && {
+          bgcolor: isOver ? 'rgba(63, 81, 181, 0.08)' : 'rgba(63, 81, 181, 0.03)',
+        })
+      }}
+      id={`folder-content-${folder.id}`}
+      data-droppable-id={`folder-${folder.id}`}
+      data-folder-id={folder.id}
+      data-folder-content="true"
+      data-is-folder="true"
+      className="folder-content"
+    >
+      {children}
+    </List>
+  );
+};
 
 // 文件夹列表主组件
 const FolderList = ({
@@ -236,27 +274,9 @@ const FolderList = ({
               </Box>
             </ListItem>
           )}
-          
-          {/* 文件夹内容区域 */}
+            {/* 文件夹内容区域 */}
           <Collapse in={openFolders[folder.id]} timeout="auto">
-            <List 
-              component="div" 
-              sx={{ 
-                bgcolor: 'rgba(0, 0, 0, 0.01)',
-                minHeight: '10px',
-                py: 0.5,
-                ...(isFileDragging && {
-                  bgcolor: 'rgba(63, 81, 181, 0.03)',
-                  transition: 'background-color 0.2s ease-in-out'
-                })
-              }}
-              id={`folder-content-${folder.id}`}
-              data-droppable-id={`folder-${folder.id}`}
-              data-folder-id={folder.id}
-              data-folder-content="true"
-              data-is-folder="true"
-              className="folder-content"
-            >
+            <FolderDropZone folder={folder} isFileDragging={isFileDragging}>
               <FolderContent
                 folder={folder}
                 files={files}
@@ -267,7 +287,7 @@ const FolderList = ({
                 onFileMouseUp={onFileMouseUp}
                 isFileDragging={isFileDragging}
               />
-            </List>
+            </FolderDropZone>
           </Collapse>
         </React.Fragment>
       ))}
