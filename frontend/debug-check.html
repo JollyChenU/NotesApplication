@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DND模块状态检查</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status-item {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .success { border-color: #4CAF50; background-color: #f1f8e9; }
+        .error { border-color: #f44336; background-color: #ffebee; }
+        .loading { border-color: #2196F3; background-color: #e3f2fd; }
+    </style>
+</head>
+<body>
+    <h1>DND模块拆分后状态检查</h1>
+    <div id="status-container">
+        <div class="status-item loading">正在检查模块导入状态...</div>
+    </div>
+
+    <script type="module">
+        const statusContainer = document.getElementById('status-container');
+        
+        function addStatus(message, type = 'loading') {
+            const div = document.createElement('div');
+            div.className = `status-item ${type}`;
+            div.textContent = message;
+            statusContainer.appendChild(div);
+        }
+
+        async function checkModules() {
+            statusContainer.innerHTML = '';
+            
+            try {
+                // 检查主模块导入
+                addStatus('正在检查主模块导入...', 'loading');
+                const mainModule = await import('./src/utils/dnd/index.js');
+                addStatus('✅ 主模块导入成功', 'success');
+                
+                // 检查导出的组件
+                const exports = Object.keys(mainModule);
+                addStatus(`导出的组件: ${exports.join(', ')}`, 'success');
+                
+                // 检查关键组件
+                const requiredExports = ['NotesDragContext', 'FilesDragContext', 'createSortableItem'];
+                for (const exportName of requiredExports) {
+                    if (mainModule[exportName]) {
+                        addStatus(`✅ ${exportName} 导出正常`, 'success');
+                    } else {
+                        addStatus(`❌ ${exportName} 导出缺失`, 'error');
+                    }
+                }
+                
+                // 检查子模块
+                const subModules = [
+                    './src/utils/dnd/dnd-logger.js',
+                    './src/utils/dnd/dnd-sortable.jsx',
+                    './src/utils/dnd/dnd-note-context.jsx',
+                    './src/utils/dnd/dnd-file-context.jsx',
+                    './src/utils/dnd/dnd-helpers.js'
+                ];
+                
+                for (const module of subModules) {
+                    try {
+                        await import(module);
+                        addStatus(`✅ ${module} 加载成功`, 'success');
+                    } catch (error) {
+                        addStatus(`❌ ${module} 加载失败: ${error.message}`, 'error');
+                    }
+                }
+                
+                addStatus('🎉 所有模块检查完成！', 'success');
+                
+            } catch (error) {
+                addStatus(`❌ 主模块导入失败: ${error.message}`, 'error');
+                console.error('模块导入错误:', error);
+            }
+        }
+
+        // 开始检查
+        checkModules();
+    </script>
+</body>
+</html>
