@@ -174,12 +174,13 @@ class AIOptimizer:
     
     def _cleanup_old_optimized_files(self, file_id, file_name):
         """
-        清理指定文件ID的旧优化文件
+        清理指定文件ID的旧优化文件，并实现缓冲区管理策略：
+        只保留最新的一个笔记文件对应的collected和optimized_general文件
         """
         try:
             safe_file_name = re.sub(r'[^\w\-_\.]', '_', file_name)
             
-            # 遍历临时目录，查找匹配的旧优化文件
+            # 1. 清理当前文件ID的旧优化文件
             for filename in os.listdir(self.temp_dir):
                 filepath = os.path.join(self.temp_dir, filename)
                 
@@ -191,8 +192,66 @@ class AIOptimizer:
                         os.remove(filepath)
                     except OSError:
                         pass  # 忽略删除失败的情况
+            
+            # 2. 实现缓冲区管理：只保留最新的一个笔记文件的temp文件
+            self._manage_temp_buffer(file_id, file_name)
+            
         except Exception:
             pass  # 忽略清理过程中的错误
+    
+    def _manage_temp_buffer(self, current_file_id, current_file_name):
+        """
+        管理temp文件缓冲区，只保留最新的一个笔记文件对应的collected和optimized_general文件
+        """
+        try:
+            # 获取所有temp文件，按修改时间排序
+            temp_files = []
+            for filename in os.listdir(self.temp_dir):
+                if filename.endswith('.txt'):
+                    filepath = os.path.join(self.temp_dir, filename)
+                    try:
+                        stat = os.stat(filepath)
+                        temp_files.append({
+                            'filename': filename,
+                            'filepath': filepath,
+                            'modified_time': stat.st_mtime,
+                            'file_id': self._extract_file_id_from_filename(filename)
+                        })
+                    except OSError:
+                        continue
+            
+            # 按修改时间降序排序
+            temp_files.sort(key=lambda x: x['modified_time'], reverse=True)
+            
+            # 找到最新的文件ID（如果当前操作不是最新的，则使用当前文件ID）
+            latest_file_id = current_file_id
+            if temp_files:
+                latest_file_id = temp_files[0]['file_id'] or current_file_id
+            
+            # 删除非最新文件ID的所有temp文件
+            for file_info in temp_files:
+                if file_info['file_id'] and str(file_info['file_id']) != str(latest_file_id):
+                    try:
+                        os.remove(file_info['filepath'])
+                    except OSError:
+                        pass
+                        
+        except Exception:
+            pass  # 忽略缓冲区管理过程中的错误
+    
+    def _extract_file_id_from_filename(self, filename):
+        """
+        从文件名中提取文件ID
+        """
+        try:
+            # 文件名格式: {safe_file_name}_{file_id}_{type}.txt
+            parts = filename.replace('.txt', '').split('_')
+            for i, part in enumerate(parts):
+                if part.isdigit():
+                    return int(part)
+            return None
+        except Exception:
+            return None
     
     def get_ai_health_status(self):
         """
