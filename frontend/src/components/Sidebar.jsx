@@ -41,9 +41,62 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
+import { useDroppable } from '@dnd-kit/core';
 import { FileDndContext } from '../utils/dnd/index.js';
 import FileItem from './FileItem';
 import FolderList from './FolderList';
+
+// 根目录投放区域组件
+const RootDropZone = ({ children, isFileDragging }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'root-area',
+    data: {
+      type: 'ROOT',
+      folderId: null
+    }
+  });
+  return (
+    <Box
+      ref={setNodeRef}
+      id="root-files"
+      data-is-root-area="true"
+      data-droppable-id="root-area"
+      className="root-files-area"
+      sx={{
+        minHeight: isFileDragging ? '80px' : '60px',
+        px: 0,
+        py: 0.5,
+        border: isOver ? '2px dashed rgba(63, 81, 181, 0.5)' : 'none',
+        borderRadius: isOver ? 1 : 0,
+        bgcolor: isOver ? 'rgba(63, 81, 181, 0.08)' : 'transparent',
+        transition: 'all 0.2s ease-in-out',
+        display: 'flex',
+        flexDirection: 'column',
+        ...(isFileDragging && {
+          border: isOver ? '2px dashed rgba(63, 81, 181, 0.5)' : '1px dashed rgba(63, 81, 181, 0.4)',
+          borderRadius: 1,
+          m: 1,
+        }),
+      }}
+    >
+      {children}
+      {/* 当拖拽时且没有文件时，显示提示 */}
+      {isFileDragging && React.Children.count(children) === 0 && (
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60px',
+          color: 'primary.main',
+          fontStyle: 'italic',
+          fontSize: '0.875rem'
+        }}>
+          拖放到此处将文件移至根目录
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 // 日志级别常量
 const LOG_LEVEL = {
@@ -309,27 +362,8 @@ const Sidebar = ({
             {folders.length > 0 && rootFiles.length > 0 && (
               <Divider sx={{ my: 1, opacity: 0.5 }} />
             )}
-            
-            {/* 根文件区域 */}
-            <Box
-              id="root-files"
-              data-is-root-area="true"
-              data-droppable-id="root-area"
-              className="root-files-area"
-              sx={{
-                minHeight: rootFiles.length === 0 ? '60px' : 'auto',
-                px: 0,
-                py: 0.5,
-                ...(isFileDragging && rootFiles.length === 0 && {
-                  border: '1px dashed rgba(63, 81, 181, 0.4)',
-                  borderRadius: 1,
-                  m: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }),
-              }}
-            >
+              {/* 根文件区域 */}
+            <RootDropZone isFileDragging={isFileDragging}>
               {rootFiles.length > 0 ? (
                 rootFiles.map(file => (
                   <FileItem
@@ -355,32 +389,7 @@ const Sidebar = ({
                 >
                   {isFileDragging ? '拖放到此处将文件移至根目录' : '根目录下暂无文件'}
                 </Box>
-              )}
-            </Box>
-            
-            {/* 专用根目录拖放区域 */}
-            <Box
-              id="root-drop-area"
-              data-is-root-area="true"
-              data-droppable-id="root-area"
-              sx={{
-                flexGrow: 1, 
-                minHeight: '120px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: isFileDragging ? 'primary.main' : 'text.disabled',
-                fontStyle: 'italic',
-                fontSize: '0.75rem',
-                border: isFileDragging ? '1px dashed rgba(63, 81, 181, 0.4)' : 'none',
-                borderRadius: 1,
-                m: isFileDragging ? 1 : 0,
-                mt: 2,
-                opacity: isFileDragging ? 0.9 : 0.6,
-              }}
-            >
-              {isFileDragging ? '拖放到此区域移至根目录' : ''}
-            </Box>
+              )}            </RootDropZone>
           </List>
         </Box>
       </FileDndContext>

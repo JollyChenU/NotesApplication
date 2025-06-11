@@ -265,7 +265,13 @@ function App() {
 
             {/* 笔记列表 */}
             <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
-              <Container maxWidth="xl" sx={{ pt: 0, pb: 4 }}>
+              <Container maxWidth="xl" sx={{ 
+                pt: 0, 
+                pb: 4,
+                px: 3, // 添加左右内边距确保与页面边缘保持距离
+                maxWidth: '100%', // 确保容器不会超出视口
+                boxSizing: 'border-box' // 确保内边距计算在容器宽度内
+              }}>
                 <ErrorBoundary>                  {activeFileId && ( // Only render NoteList if a file is active
                     <NoteList
                       notes={notes}

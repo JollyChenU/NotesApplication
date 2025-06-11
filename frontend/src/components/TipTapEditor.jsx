@@ -191,18 +191,20 @@ const TipTapEditor = ({
   const getEditorStyles = () => {
     const baseStyles = {
       width: '100%',
-      minHeight: '1em',
+      minHeight: '18px',
       height: 'fit-content',
-      lineHeight: '1.5',
+      lineHeight: 1.3, // 减少行高从1.4到1.3
       overflow: 'hidden',
       whiteSpace: 'pre-wrap',
       wordWrap: 'break-word',
       fontFamily: 'inherit',
       fontSize: 'inherit',
-      padding: '2px 8px',
+      padding: '2px 4px', // 调整内边距
       boxShadow: 'none',
       border: 'none',
       transition: 'all 0.3s ease-in-out',
+      display: 'flex',
+      alignItems: 'center', // 垂直居中对齐
       '&:hover': {
         boxShadow: 'none',
         border: 'none'
@@ -235,12 +237,15 @@ const TipTapEditor = ({
       sx={{
         position: 'relative',
         width: '100%',
-        overflow: 'hidden',
+        overflow: 'hidden', // 确保外层容器隐藏溢出内容
         '& .ProseMirror': {
           ...getEditorStyles(),
           outline: 'none',
           caretColor: '#3f51b5',
           color: '#000000',
+          overflow: 'hidden',
+          overflowY: 'hidden',
+          overflowX: 'hidden',
           '&:focus': {
             border: 'none',
             outline: 'none',
@@ -248,6 +253,30 @@ const TipTapEditor = ({
           },
           '& p': {
             margin: 0,
+            padding: 0,
+            lineHeight: 1.3,
+            minHeight: '16px',
+          },
+          // 减少标题的上下间距
+          '& h1': {
+            margin: '1px 0',
+            padding: '2px 0',
+            lineHeight: '1.2',
+          },
+          '& h2': {
+            margin: '4px 0',
+            padding: '2px 0',
+            lineHeight: '1.2',
+          },
+          '& h3': {
+            margin: '4px 0',
+            padding: '2px 0',
+            lineHeight: '1.2',
+          },
+          '& h4, & h5, & h6': {
+            margin: '4px 0',
+            padding: '2px 0',
+            lineHeight: '1.2',
           },
           // ... (保持原有的 ProseMirror 内部元素样式)
           '& strong': {

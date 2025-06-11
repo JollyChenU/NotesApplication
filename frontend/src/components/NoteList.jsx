@@ -50,12 +50,15 @@ const NoteItem = memo(({
     <Paper
       data-note-id={note.id}
       sx={{
-        p: 3,
-        mb: 2,
+        p: 1, // 减少内边距
+        mb: 0, // 设置很小的下边距
+        mt: 0, // 确保上边距为0
+        pl: 2, // 增加左边距，为拖拽图标留出空间
         position: 'relative',
         width: '100%',
         maxWidth: '1200px',
         mx: 'auto',
+        minHeight: '40px', // 确保最小高度以容纳删除按钮
         '@media (max-width: 1400px)': {
           maxWidth: '1100px',
         },
@@ -68,6 +71,12 @@ const NoteItem = memo(({
         '@media (max-width: 600px)': {
           maxWidth: '95%',
         },
+        // 确保左右间距一致
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        // 防止出现横向滚动条
+        // overflowX: 'hidden', // 注释掉这行，避免隐藏拖拽图标
+        boxSizing: 'border-box',
         background: isDragging ? '#ffebee' : '#ffffff',
         transition: 'all 0.3s ease-in-out',
         border: '1px solid transparent',
@@ -75,7 +84,7 @@ const NoteItem = memo(({
         '&:hover': {
           border: '1px solid rgba(0, 0, 0, 0.12)',
           boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-          '& .delete-button, & .drag-handle:not(.active)': { // 修改选择器，排除已激活的图标
+          '& .delete-button, & .drag-handle': { // 修改选择器，确保所有拖拽图标在hover时都可见
             opacity: 1
           }
         }
@@ -100,8 +109,12 @@ const NoteItem = memo(({
             padding: '4px',
             fontSize: '24px',
             color: '#666',
-            opacity: isHandleActive ? 1 : 0, // 根据激活状态设置透明度
+            opacity: isHandleActive ? 1 : 0, // 提高非激活状态的透明度
             transition: 'opacity 0.2s ease-in-out',
+            width: '24px',
+            height: '24px',
+            justifyContent: 'center',
+            zIndex: 10, // 提高z-index确保图标在最上层
             '&:active': {
               cursor: 'grabbing',
               color: '#333'
@@ -112,10 +125,10 @@ const NoteItem = memo(({
             }
           }}
           {...dragHandleProps}
-          onClick={(e) => {
-            // 阻止事件冒泡，避免触发父元素的点击事件
+          onContextMenu={(e) => {
+            // 右键点击显示菜单
+            e.preventDefault();
             e.stopPropagation();
-            // 显示菜单，使用拖曳图标作为锚点
             onMenuOpen(e, note.id);
           }}
         >
@@ -127,10 +140,12 @@ const NoteItem = memo(({
         onClick={() => onDelete(note.id)}
         sx={{ 
           position: 'absolute', 
-          top: 8, 
+          top: '50%', // 改为垂直居中定位
           right: 8,
+          transform: 'translateY(-50%)', // 垂直居中
           opacity: 0,
-          transition: 'opacity 0.2s ease-in-out'
+          transition: 'opacity 0.2s ease-in-out',
+          zIndex: 1 // 确保按钮在最上层
         }}
       >
         <DeleteIcon />

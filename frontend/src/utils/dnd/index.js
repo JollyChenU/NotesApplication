@@ -22,5 +22,9 @@ export { FileDndContext } from './dnd-file-context.jsx';
 
 // 导出辅助函数
 export {
-  throttle
+  throttle,
+  clearAllFolderHighlights,
+  highlightFolderElement,
+  setupFolderElements,
+  cleanupDragState
 } from './dnd-helpers.js';
