@@ -56,22 +56,27 @@ const FolderContent = memo(({
       </Box>
     );
   }
-  
-  // 空文件夹提示
+    // 空文件夹提示
   if (folderFiles.length === 0) {
     return (
       <Box sx={{ 
-        py: 1.5, 
+        py: 2, 
         px: 2, 
         color: isFileDragging ? 'primary.main' : 'text.disabled',
         fontStyle: 'italic',
-        fontSize: '0.75rem',
+        fontSize: '0.875rem',
         textAlign: 'center',
-        border: isFileDragging ? '1px dashed rgba(63, 81, 181, 0.4)' : 'none',
-        borderRadius: 1,
-        m: isFileDragging ? 1 : 0,
+        minHeight: isFileDragging ? '40px' : '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.3s ease-in-out',
+        ...(isFileDragging && {
+          backgroundColor: 'rgba(63, 81, 181, 0.05)',
+          borderRadius: 1,
+        })
       }}>
-        {isFileDragging ? '拖放到此处' : '文件夹为空'}
+        {isFileDragging ? '拖放文件到此文件夹' : '文件夹为空'}
       </Box>
     );
   }
@@ -105,20 +110,58 @@ const FolderDropZone = ({ folder, children, isFileDragging }) => {
     }
   });
 
+  // 计算文件夹子项数量
+  const childrenCount = React.Children.count(children);
+    // 稳定的高度计算，避免布局抖动
+  const dynamicMinHeight = React.useMemo(() => {
+    if (!isFileDragging) return '10px';
+    
+    if (childrenCount === 0) {
+      // 空文件夹：显示放置提示区域
+      return '60px';
+    } else {
+      // 有文件的文件夹：只为原有文件预留空间，不为占位符预留额外高度
+      const baseHeight = childrenCount * 48; // 每个文件项约48px
+      const padding = 16; // 只保留基本内边距
+      return `${baseHeight + padding}px`;
+    }
+  }, [isFileDragging, childrenCount]); // 保持稳定的高度计算
+
+  // 稳定的样式配置，减少因状态变化导致的重渲染
+  const baseStyles = React.useMemo(() => ({
+    minHeight: dynamicMinHeight,
+    maxHeight: isFileDragging ? 'none' : 'auto',
+    py: 0.5,
+    px: 1,
+    overflow: 'visible',
+    position: 'relative',
+    transition: 'background-color 0.2s ease-in-out, border-color 0.2s ease-in-out', // 只过渡颜色变化
+  }), [dynamicMinHeight, isFileDragging]);
+
+  // 动态样式配置，仅在必要时应用
+  const dynamicStyles = React.useMemo(() => {
+    if (!isFileDragging) {
+      return {
+        bgcolor: 'rgba(0, 0, 0, 0.01)',
+        border: 'none',
+        borderRadius: 0,
+      };
+    }
+
+    return {
+      bgcolor: isOver ? 'rgba(63, 81, 181, 0.08)' : 'rgba(63, 81, 181, 0.03)',
+      border: isOver ? '2px dashed rgba(63, 81, 181, 0.5)' : '1px dashed rgba(63, 81, 181, 0.3)',
+      borderRadius: 1,
+    };
+  }, [isFileDragging, isOver]);
+
   return (
     <List 
       ref={setNodeRef}
       component="div" 
       sx={{ 
-        bgcolor: isOver ? 'rgba(63, 81, 181, 0.08)' : 'rgba(0, 0, 0, 0.01)',
-        minHeight: '10px',
-        py: 0.5,
-        border: isOver ? '2px dashed rgba(63, 81, 181, 0.5)' : 'none',
-        borderRadius: isOver ? 1 : 0,
-        transition: 'all 0.2s ease-in-out',
-        ...(isFileDragging && {
-          bgcolor: isOver ? 'rgba(63, 81, 181, 0.08)' : 'rgba(63, 81, 181, 0.03)',
-        })
+        ...baseStyles,
+        ...dynamicStyles,
       }}
       id={`folder-content-${folder.id}`}
       data-droppable-id={`folder-${folder.id}`}
@@ -128,6 +171,30 @@ const FolderDropZone = ({ folder, children, isFileDragging }) => {
       className="folder-content"
     >
       {children}
+        {/* 优化的拖拽占位符：使用绝对定位避免布局偏移 */}
+      {isFileDragging && isOver && childrenCount > 0 && (
+        <Box sx={{
+          position: 'absolute',
+          bottom: '8px',
+          left: '8px',
+          right: '8px',
+          height: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(63, 81, 181, 0.12)',
+          borderRadius: 1,
+          border: '2px dashed rgba(63, 81, 181, 0.4)',
+          color: 'primary.main',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          opacity: 0.9,
+          zIndex: 10, // 确保在其他内容之上显示
+          pointerEvents: 'none', // 防止干扰拖拽操作
+        }}>
+          放置文件到此处
+        </Box>
+      )}
     </List>
   );
 };
