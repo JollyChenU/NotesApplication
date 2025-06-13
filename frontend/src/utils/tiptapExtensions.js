@@ -16,6 +16,7 @@ import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import TextStyle from '@tiptap/extension-text-style';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Highlight from '@tiptap/extension-highlight';
 import { Extension } from '@tiptap/core';
 
 // Import lowlight v3 factory and common languages
@@ -60,8 +61,7 @@ const CustomKeyboardShortcuts = Extension.create({
 });
 
 // 组合所有扩展
-export const tiptapExtensions = [
-  // 基础功能包
+export const tiptapExtensions = [  // 基础功能包
   StarterKit.configure({
     heading: {
       levels: [1, 2, 3],
@@ -71,6 +71,10 @@ export const tiptapExtensions = [
       keepAttributes: true,
     },
     orderedList: {
+      keepMarks: true,
+      keepAttributes: true,
+    },
+    blockquote: {
       keepMarks: true,
       keepAttributes: true,
     },
@@ -93,11 +97,14 @@ export const tiptapExtensions = [
       rel: 'noopener noreferrer',
       target: '_blank',
     },
-  }),
-  // 下划线
+  }),  // 下划线
   Underline,
   // 文本样式
   TextStyle,
+  // 高亮
+  Highlight.configure({
+    multicolor: false,
+  }),
   // 自定义回车键处理
   EnterKeyCustomHandler,
   // 自定义快捷键

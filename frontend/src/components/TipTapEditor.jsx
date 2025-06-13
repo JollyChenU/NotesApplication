@@ -10,7 +10,7 @@
  * 许可证: Apache-2.0
  */
 
-import React, { useEffect, useCallback, useMemo } from 'react'; // Add useMemo
+import React, { useEffect, useCallback, useMemo, useRef } from 'react'; // Add useRef
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Box } from '@mui/material';
 import { tiptapExtensions } from '../utils/tiptapExtensions';
@@ -54,9 +54,12 @@ const TipTapEditor = ({
    useEffect(() => {
     if (!editor || !note?.id) {
       return;
-    }
-    
-    const handleUpdate = () => {
+    }    const handleUpdate = () => {
+        // 如果正在进行格式转换，暂时不触发自动更新
+        if (isFormattingRef.current) {
+            return;
+        }
+        
         const htmlContent = editor.getHTML();
         
         // Avoid updating if content is just the initial empty paragraph or unchanged
@@ -72,11 +75,10 @@ const TipTapEditor = ({
     };
     
     editor.on('update', handleUpdate);
-    
-    return () => {
+      return () => {
       editor.off('update', handleUpdate);
     };
-  }, [editor, note?.id, debouncedUpdate]);
+  }, [editor, note?.id, note?.format, debouncedUpdate]); // 添加 note?.format 依赖
 
 
   // Simplified effect to sync external note content changes to the editor
@@ -185,7 +187,119 @@ const TipTapEditor = ({
       editorElement.removeEventListener('keydown', handleKeyDown, true);
     };
     // Add onUpdate to dependencies as it's used in handleEnterKeySplit
-  }, [editor, note, onUpdate, onFocus]);
+  }, [editor, note, onUpdate, onFocus]);  // 处理格式转换
+  const prevFormatRef = useRef(note?.format);
+  const isFormattingRef = useRef(false); // 添加格式转换状态标志
+  
+  useEffect(() => {
+    if (editor && note?.format && prevFormatRef.current !== note?.format) {
+      // 只有当格式真正发生变化时才执行转换
+      prevFormatRef.current = note?.format;
+      isFormattingRef.current = true; // 设置格式转换状态
+      
+      // 获取当前选中的内容或全部内容
+      const { from, to } = editor.state.selection;
+      const isSelectionEmpty = from === to;
+      
+      // 如果没有选中内容，选中全部内容
+      if (isSelectionEmpty) {
+        editor.commands.selectAll();
+      }
+        // 根据格式执行相应的转换命令
+      switch (note.format) {        case 'text':
+          // 转换为普通文本，彻底清除所有格式          // 1. 先取消所有可能的活跃状态
+          if (editor.isActive('highlight')) {
+            editor.commands.toggleHighlight(); // 如果是高亮状态，toggle会取消高亮
+          }
+          if (editor.isActive('bulletList')) {
+            editor.commands.toggleBulletList();
+          }
+          if (editor.isActive('orderedList')) {
+            editor.commands.toggleOrderedList();
+          }
+          if (editor.isActive('blockquote')) {
+            editor.commands.toggleBlockquote();
+          }
+          // 2. 清除块级格式（标题、列表、引用等）
+          editor.commands.clearNodes();
+          // 3. 清除所有行内标记（粗体、斜体、高亮等）
+          editor.commands.unsetAllMarks();
+          // 4. 确保转换为普通段落
+          editor.commands.setParagraph();
+          break;        case 'h1':
+          // 先清除其他格式，再设置标题
+          editor.commands.clearNodes();
+          editor.commands.unsetAllMarks();
+          editor.commands.setHeading({ level: 1 });
+          break;
+        case 'h2':
+          editor.commands.clearNodes();
+          editor.commands.unsetAllMarks();
+          editor.commands.setHeading({ level: 2 });
+          break;
+        case 'h3':
+          editor.commands.clearNodes();
+          editor.commands.unsetAllMarks();
+          editor.commands.setHeading({ level: 3 });
+          break;        case 'bullet':
+          // 确保清除其他格式后应用无序列表
+          if (editor.isActive('orderedList')) {
+            editor.commands.toggleOrderedList();
+          }
+          if (editor.isActive('blockquote')) {
+            editor.commands.toggleBlockquote();
+          }
+          editor.commands.clearNodes();
+          editor.commands.unsetAllMarks();
+          editor.commands.toggleBulletList();
+          break;
+        case 'number':
+          // 确保清除其他格式后应用有序列表
+          if (editor.isActive('bulletList')) {
+            editor.commands.toggleBulletList();
+          }
+          if (editor.isActive('blockquote')) {
+            editor.commands.toggleBlockquote();
+          }
+          editor.commands.clearNodes();
+          editor.commands.unsetAllMarks();
+          editor.commands.toggleOrderedList();
+          break;
+        case 'quote':
+          // 确保清除其他格式后应用引用
+          if (editor.isActive('bulletList')) {
+            editor.commands.toggleBulletList();
+          }
+          if (editor.isActive('orderedList')) {
+            editor.commands.toggleOrderedList();
+          }
+          editor.commands.clearNodes();
+          editor.commands.unsetAllMarks();
+          editor.commands.toggleBlockquote();
+          break;
+        case 'highlight':
+          // 对于高亮，只应用高亮标记，不清除块级格式
+          // 确保应用高亮效果
+          if (!editor.isActive('highlight')) {
+            editor.commands.toggleHighlight();
+          }
+          break;
+        default:
+          break;
+      }      
+      // 如果原来没有选中内容，恢复到末尾
+      if (isSelectionEmpty) {
+        editor.commands.focus('end');
+      }
+        // 格式转换完成后，延迟重置标志并手动触发一次更新
+      setTimeout(() => {
+        isFormattingRef.current = false;
+        // 手动触发一次更新，确保新格式被保存
+        const htmlContent = editor.getHTML();
+        debouncedUpdate(note.id, { content: htmlContent, format: note.format });
+      }, 100); // 短暂延迟确保格式转换完全完成
+    }
+  }, [editor, note?.format]); // 监听格式变化
 
   // 根据笔记格式获取样式 (保持原有逻辑)
   const getEditorStyles = () => {

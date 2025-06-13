@@ -1,7 +1,7 @@
 {
   "name": "notes-frontend",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.1",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
@@ -20,6 +20,7 @@
     "@mui/material": "^5.13.0",
     "@tiptap/core": "^2.4.0",
     "@tiptap/extension-code-block-lowlight": "^2.4.0",
+    "@tiptap/extension-highlight": "^2.14.0",
     "@tiptap/extension-link": "^2.4.0",
     "@tiptap/extension-placeholder": "^2.4.0",
     "@tiptap/extension-text-style": "^2.4.0",
