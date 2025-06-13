@@ -93,11 +93,15 @@ const NoteItem = memo(({
       <Box
         sx={{
           position: 'absolute',
-          left: -40,
+          left: { xs: -32, sm: -36, md: -40 }, // 响应式左边距，防止被遮挡
           top: 0,
           display: 'flex',
           alignItems: 'center',
-          gap: 1
+          gap: 1,
+          minWidth: '24px', // 确保最小宽度
+          '@media (max-width: 600px)': {
+            left: -28 // 小屏幕时进一步减少左边距
+          }
         }}
       >
         <Box
@@ -125,6 +129,12 @@ const NoteItem = memo(({
             }
           }}
           {...dragHandleProps}
+          onClick={(e) => {
+            // 单击显示菜单
+            e.preventDefault();
+            e.stopPropagation();
+            onMenuOpen(e, note.id);
+          }}
           onContextMenu={(e) => {
             // 右键点击显示菜单
             e.preventDefault();
