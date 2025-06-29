@@ -300,25 +300,23 @@ const TipTapEditor = ({
       }, 100); // 短暂延迟确保格式转换完全完成
     }
   }, [editor, note?.format]); // 监听格式变化
-
   // 根据笔记格式获取样式 (保持原有逻辑)
   const getEditorStyles = () => {
     const baseStyles = {
       width: '100%',
-      minHeight: '18px',
-      height: 'fit-content',
-      lineHeight: 1.3, // 减少行高从1.4到1.3
-      overflow: 'hidden',
+      minHeight: '24px',
+      height: 'auto',
+      lineHeight: 1.5, // 增加行高
+      overflow: 'visible', // 改为 visible
       whiteSpace: 'pre-wrap',
       wordWrap: 'break-word',
       fontFamily: 'inherit',
       fontSize: 'inherit',
-      padding: '2px 4px', // 调整内边距
+      padding: '4px 6px', // 增加内边距
       boxShadow: 'none',
       border: 'none',
       transition: 'all 0.3s ease-in-out',
-      display: 'flex',
-      alignItems: 'center', // 垂直居中对齐
+      display: 'block', // 改为 block      alignItems: 'flex-start', // 改为顶部对齐
       '&:hover': {
         boxShadow: 'none',
         border: 'none'
@@ -344,53 +342,84 @@ const TipTapEditor = ({
         return baseStyles;
     }
   };
-
   return (
     <Box
       data-note-id={note?.id}
       sx={{
         position: 'relative',
         width: '100%',
-        overflow: 'hidden', // 确保外层容器隐藏溢出内容
+        minHeight: '24px',
+        overflow: 'visible', // 改为 visible 避免内容被裁剪
         '& .ProseMirror': {
           ...getEditorStyles(),
           outline: 'none',
           caretColor: '#3f51b5',
           color: '#000000',
-          overflow: 'hidden',
-          overflowY: 'hidden',
-          overflowX: 'hidden',
+          overflow: 'visible', // 改为 visible
+          position: 'relative', // 确保相对定位
+          zIndex: 1, // 确保层级正确
           '&:focus': {
             border: 'none',
             outline: 'none',
             boxShadow: 'none'
           },
           '& p': {
-            margin: 0,
+            margin: '2px 0', // 增加段落间距
             padding: 0,
-            lineHeight: 1.3,
-            minHeight: '16px',
+            lineHeight: 1.5, // 增加行高
+            minHeight: '20px', // 增加最小高度
+            display: 'block', // 确保块级显示
           },
-          // 减少标题的上下间距
+          // 修复标题的间距和显示
           '& h1': {
-            margin: '1px 0',
+            margin: '8px 0 4px 0', // 上下间距
             padding: '2px 0',
-            lineHeight: '1.2',
+            lineHeight: '1.3',
+            display: 'block',
+            fontSize: '2em',
+            fontWeight: 'bold',
           },
           '& h2': {
-            margin: '4px 0',
+            margin: '6px 0 3px 0',
             padding: '2px 0',
-            lineHeight: '1.2',
+            lineHeight: '1.3',
+            display: 'block',
+            fontSize: '1.5em',
+            fontWeight: 'bold',
           },
           '& h3': {
-            margin: '4px 0',
+            margin: '4px 0 2px 0',
             padding: '2px 0',
-            lineHeight: '1.2',
+            lineHeight: '1.3',
+            display: 'block',
+            fontSize: '1.2em',
+            fontWeight: 'bold',
           },
           '& h4, & h5, & h6': {
-            margin: '4px 0',
+            margin: '4px 0 2px 0',
             padding: '2px 0',
-            lineHeight: '1.2',
+            lineHeight: '1.3',
+            display: 'block',
+            fontWeight: 'bold',
+          },
+          // 列表和其他元素样式
+          '& ul, & ol': {
+            margin: '4px 0',
+            padding: '0 0 0 20px',
+            display: 'block',
+          },
+          '& li': {
+            margin: '2px 0',
+            padding: 0,
+            lineHeight: 1.5,
+            display: 'list-item',
+          },
+          '& blockquote': {
+            margin: '4px 0',
+            padding: '4px 0 4px 16px',
+            borderLeft: '4px solid #ccc',
+            fontStyle: 'italic',
+            display: 'block',
           },
           // ... (保持原有的 ProseMirror 内部元素样式)
           '& strong': {

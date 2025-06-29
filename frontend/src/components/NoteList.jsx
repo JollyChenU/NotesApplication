@@ -74,8 +74,8 @@ const NoteItem = memo(({
         // 确保左右间距一致
         marginLeft: 'auto',
         marginRight: 'auto',
-        // 防止出现横向滚动条
-        // overflowX: 'hidden', // 注释掉这行，避免隐藏拖拽图标
+        // 防止出现横向滚动条        // overflowX: 'hidden', // 注释掉这行，避免隐藏拖拽图标
+        overflow: 'visible', // 明确设置为 visible
         boxSizing: 'border-box',
         background: isDragging ? '#ffebee' : '#ffffff',
         transition: 'all 0.3s ease-in-out',

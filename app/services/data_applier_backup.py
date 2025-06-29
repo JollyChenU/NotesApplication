@@ -153,127 +153,56 @@ class DataApplier:
                 'comparison': {
                     'original_count': len(original_notes),
                     'new_count': len([n for n in new_notes if n.strip()]),
-                    'content_change': True                }            }
+                    'content_change': True                }
+            }
             
         except Exception as e:
             return {'success': False, 'error': f'预览失败: {str(e)}'}
-    
-    def _parse_optimized_content(self, content):
+      def _parse_optimized_content(self, content):
         """
-        精细化解析：每个标题和段落都是独立的block
-        
-        规则：
-        1. 每个标题（#, ##, ###, ####等）是一个独立的block
-        2. 每个段落（由空行分隔）是一个独立的block
-        3. 列表项保持在一起作为一个block（除非被空行分隔）
-        4. 代码块保持完整
-        5. 分隔符（---）单独作为一个block
+        解析优化后的内容为笔记块.
+        按照 markdown 结构进行智能分割，保持逻辑完整性。
         """
         if not content:
             return []
         
         content = self._remove_metadata_header(content)
         
-        # 按行分割，然后重新组合成block
-        lines = content.split('\n')
-        blocks = []
-        current_block = []
-        in_code_block = False
+        # 优化分割策略：
+        # 1. 按照 markdown 分隔符（---）分割主要章节
+        # 2. 在每个章节内，按照二级标题（##）分割
+        # 3. 过滤掉单独的分隔符行
         
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            stripped_line = line.strip()
-            
-            # 检查代码块开始/结束
-            if stripped_line.startswith('```'):
-                if in_code_block:
-                    # 代码块结束
-                    current_block.append(line)
-                    blocks.append('\n'.join(current_block))
-                    current_block = []
-                    in_code_block = False
-                else:
-                    # 代码块开始
-                    if current_block:
-                        blocks.append('\n'.join(current_block))
-                        current_block = []
-                    current_block.append(line)
-                    in_code_block = True
-                i += 1
+        # 首先按 --- 分割大章节
+        major_sections = re.split(r'\n\s*---\s*\n', content)
+        
+        notes = []
+        for section in major_sections:
+            section = section.strip()
+            if not section or section == '---':
                 continue
-            
-            # 如果在代码块内，直接添加
-            if in_code_block:
-                current_block.append(line)
-                i += 1
-                continue
-            
-            # 检查标题
-            if stripped_line.startswith('#') and ' ' in stripped_line:
-                # 先保存当前block
-                if current_block:
-                    blocks.append('\n'.join(current_block))
-                    current_block = []
                 
-                # 标题单独作为一个block
-                blocks.append(line.strip())
-                i += 1
-                continue
+            # 在每个大章节内，按二级标题（##）进一步分割
+            # 但保持三级标题（###）及以下内容与其父级在一起
+            subsections = re.split(r'\n(?=## )', section)
             
-            # 检查分隔符
-            if stripped_line == '---':
-                # 先保存当前block
-                if current_block:
-                    blocks.append('\n'.join(current_block))
-                    current_block = []
-                
-                # 分隔符单独作为一个block
-                blocks.append(stripped_line)
-                i += 1
-                continue
-            
-            # 检查空行
-            if not stripped_line:
-                # 如果当前block有内容，保存它
-                if current_block:
-                    blocks.append('\n'.join(current_block))
-                    current_block = []
-                # 跳过连续的空行
-                while i < len(lines) and not lines[i].strip():
-                    i += 1
-                continue
-            
-            # 普通行，添加到当前block
-            current_block.append(line)
-            i += 1
+            for subsection in subsections:
+                subsection = subsection.strip()
+                if subsection:
+                    notes.append(subsection)
         
-        # 保存最后的block
-        if current_block:
-            blocks.append('\n'.join(current_block))
-        
-        # 清理空块和仅包含空白的块
-        cleaned_blocks = []
-        for block in blocks:
-            cleaned_block = block.strip()
-            if cleaned_block:
-                cleaned_blocks.append(cleaned_block)
+        # 如果没有找到合适的分割点，回退到原有的按空行分割策略
+        if not notes:
+            blocks = re.split(r'\n\s*\n+', content)
+            notes = [block.strip() for block in blocks if block.strip()]
         
         # 添加调试信息
-        print(f"DEBUG: 精细化解析后得到 {len(cleaned_blocks)} 个笔记块")
-        for i, block in enumerate(cleaned_blocks):
-            preview = block[:50].replace('\n', '\\n')
-            block_type = "段落"
-            if block.startswith('#'):
-                level = len(block) - len(block.lstrip('#'))
-                block_type = f"H{level}标题"
-            elif block == '---':
-                block_type = "分隔符"
-            elif block.startswith('- ') or block.startswith('* '):
-                block_type = "列表"
-            print(f"DEBUG: Block {i+1} ({block_type}): {preview}...")
+        print(f"DEBUG: 解析内容分割后得到 {len(notes)} 个笔记块")
+        for i, note in enumerate(notes):
+            preview = note[:100].replace('\n', '\\n')
+            print(f"DEBUG: 笔记块 {i+1}: {preview}...")
         
-        return cleaned_blocks
+        return notes
     
     def _remove_metadata_header(self, content):
         """

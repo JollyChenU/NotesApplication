@@ -12,6 +12,9 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// 添加调试信息
+console.log('AI Service API Base URL:', API_BASE_URL);
+
 class AIService {
     /**
      * 收集指定文件的所有笔记内容
@@ -45,9 +48,15 @@ class AIService {
      * @param {string} content - 待优化的内容
      * @param {string} type - 优化类型 (general, grammar, structure, clarity)
      * @returns {Promise} 包含优化结果的响应
-     */
-    async optimizeContent(fileId, content, type = 'general') {
+     */    async optimizeContent(fileId, content, type = 'general') {
         try {
+            console.log('AI优化请求:', {
+                url: `${API_BASE_URL}/ai/optimize-content`,
+                fileId,
+                contentLength: content?.length,
+                type
+            });
+
             const response = await fetch(`${API_BASE_URL}/ai/optimize-content`, {
                 method: 'POST',
                 headers: {
@@ -60,13 +69,24 @@ class AIService {
                 })
             });
 
+            console.log('AI优化响应状态:', response.status, response.statusText);
+
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('AI优化响应错误:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
-            return await response.json();
+            const result = await response.json();
+            console.log('AI优化成功:', result.success);
+            return result;
         } catch (error) {
             console.error('AI优化失败:', error);
+            console.error('错误详情:', {
+                message: error.message,
+                name: error.name,
+                stack: error.stack
+            });
             throw error;
         }
     }
@@ -175,12 +195,13 @@ class AIService {
      * 获取临时文件列表
      * @param {number} fileId - 可选的文件ID，如果提供则只返回该文件的临时文件
      * @returns {Promise} 包含临时文件列表的响应
-     */
-    async getTempFiles(fileId = null) {
+     */    async getTempFiles(fileId = null) {
         try {
             const url = fileId 
                 ? `${API_BASE_URL}/ai/temp-files?file_id=${fileId}`
                 : `${API_BASE_URL}/ai/temp-files`;
+            
+            console.log('获取临时文件请求:', url);
             
             const response = await fetch(url, {
                 method: 'GET',
@@ -189,11 +210,17 @@ class AIService {
                 }
             });
 
+            console.log('获取临时文件响应状态:', response.status, response.statusText);
+
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('获取临时文件响应错误:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
-            return await response.json();
+            const result = await response.json();
+            console.log('获取临时文件成功:', result);
+            return result;
         } catch (error) {
             console.error('获取临时文件列表失败:', error);
             throw error;
