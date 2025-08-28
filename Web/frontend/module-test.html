@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DnD 模块测试</title>
+</head>
+<body>
+  <div id="test-root"></div>
+  
+  <script type="module">
+    import { createRoot } from 'react-dom/client';
+    import ModuleTestComponent from './src/ModuleTest.jsx';
+    
+    const container = document.getElementById('test-root');
+    const root = createRoot(container);
+    root.render(ModuleTestComponent());
+  </script>
+</body>
+</html>

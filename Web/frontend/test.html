@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Test</h1>
+    <button onclick="testFiles()">Test Files API</button>
+    <button onclick="testFolders()">Test Folders API</button>
+    <div id="results"></div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        
+        async function testFiles() {
+            try {
+                console.log('Testing files API...');
+                const response = await fetch(`${API_URL}/files`);
+                const data = await response.json();
+                console.log('Files response:', data);
+                document.getElementById('results').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('Files API error:', error);
+                document.getElementById('results').innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+        }
+        
+        async function testFolders() {
+            try {
+                console.log('Testing folders API...');
+                const response = await fetch(`${API_URL}/folders`);
+                const data = await response.json();
+                console.log('Folders response:', data);
+                document.getElementById('results').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('Folders API error:', error);
+                document.getElementById('results').innerHTML = '<pre>Error: ' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>

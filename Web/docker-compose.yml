@@ -1,0 +1,53 @@
+# 文件名: docker-compose.yml
+# 项目: NotesApplication
+# 描述: Docker容器编排配置，定义应用程序的多容器部署架构
+# 功能:
+#   - 后端Flask应用容器配置
+#   - 前端React应用容器配置
+#   - 数据库卷挂载配置
+#   - 网络端口映射配置
+#
+# 作者: DevOps团队
+# 创建时间: 2024-11-01
+# 最后修改: 2025-06-04
+# 修改人: 系统维护
+# 版本: 1.2.0
+#
+# 使用方法:
+#   - 开发环境: docker-compose up
+#   - 后台运行: docker-compose up -d
+#   - 停止服务: docker-compose down
+#
+# 端口映射:
+#   - 后端: 5000 -> 5000
+#   - 前端: 3000 -> 3000
+#
+# 注意事项:
+#   - 需要确保Docker和Docker Compose已安装
+#   - 数据库文件将持久化到本地notes.db
+#   - 修改配置后需要重新构建镜像
+
+version: '3'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./notes.db:/app/notes.db
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

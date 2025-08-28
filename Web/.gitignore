@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# Node
+node_modules/
+.npm
+
+# IDE
+.idea/
+.vscode/
+
+# Database
+*.db
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Codes Counter
+.VSCodeCounter/
+
+# Documentation - Presentation and Report files
+docs/OnePage_*
+docs/PPT_*
+docs/REPORT_*
+
+# temp files
+temp/
